@@ -1,5 +1,4 @@
 #lang racket
-
 (require "composition.rkt")
 (require "functional-graphics.rkt")
 

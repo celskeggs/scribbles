@@ -1,7 +1,7 @@
 #lang racket
+(require racket/gui)
 
 (require "utils.rkt")
-(require racket/gui)
 
 (define-provide (interactive-view draw press drag move release [title "Interactive View"] [width 300] [height 300])
   (define frame (new frame% [label title] [width width] [height height]))

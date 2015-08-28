@@ -1,30 +1,6 @@
 #lang racket
-
 (require "utils.rkt")
 (require "vector.rkt")
-
-; UNUSED
-
-(define (r:translate dx dy body)
-  (lambda (dc)
-    (let ((orig-transformation (send dc get-transformation)))
-      (send dc translate dx dy)
-      (body dc)
-      (send dc set-transformation orig-transformation))))
-(define (r:rotate radians body)
-  (lambda (dc)
-    (let ((orig-transformation (send dc get-transformation)))
-      (send dc rotate radians)
-      (body dc)
-      (send dc set-transformation orig-transformation))))
-(define (r:marker x y [radius 8])
-  (r:all
-   (r:line (- x radius) (- y radius) (+ x radius) (+ y radius))
-   (r:line (- x radius) (+ y radius) (+ x radius) (- y radius))))
-(define (r:marker-for-handle handle)
-  (r:marker (v-x handle) (v-y handle)))
-
-; USED
 
 (define-provide (r:pen color width style . bodies)
   (lambda (dc)

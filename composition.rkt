@@ -1,5 +1,4 @@
 #lang racket
-
 (require "manipulation-view.rkt")
 (require "vector.rkt")
 (require "functional-graphics.rkt")

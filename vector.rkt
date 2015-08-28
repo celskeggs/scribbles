@@ -1,5 +1,4 @@
 #lang racket
-
 (require "utils.rkt")
 
 (provide v v-x v-y)

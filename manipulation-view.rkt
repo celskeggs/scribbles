@@ -1,5 +1,4 @@
 #lang racket
-
 (require racket/draw)
 
 (require "utils.rkt")
