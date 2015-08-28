@@ -16,6 +16,10 @@
   (v (- (v-x v1) (v-x v2))
      (- (v-y v1) (v-y v2))))
 
+(define-provide (v*c ve c)
+  (v (* c (v-x ve))
+     (* c (v-y ve))))
+
 (define-provide (vlen-sq v)
   (+ (sq (v-x v)) (sq (v-y v))))
 
@@ -27,3 +31,6 @@
 
 (define-provide (vin-circle? needle center radius)
   (vin-origin-circle? (v- needle center) radius))
+
+(define-provide (vscale v len)
+  (v*c v (/ len (vlen v))))
