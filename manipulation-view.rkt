@@ -10,7 +10,7 @@
 (define hover-brush (new brush% [color (make-color 0 192 192)]))
 (define drag-brush (new brush% [color (make-color 255 255 255)]))
 
-(define-provide (handle-view render get-handles update-handle [handle-radius 6] [sel-box-size 30])
+(define-provide (handle-view render get-handles update-handle [width 300] [height 300] [handle-radius 6] [sel-box-size 30])
   
   (define handle-diameter (* 2 handle-radius))
   
@@ -77,4 +77,4 @@
           (set! active-handle #f)
           (set! drag-rel #f))))
   
-  (interactive-view draw press drag move release))
+  (interactive-view draw press drag move release width height))

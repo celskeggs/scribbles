@@ -1,6 +1,6 @@
 #lang racket
 
-(provide define-provide)
+(provide define-provide each)
 
 (define-syntax define-provide
   (syntax-rules ()
@@ -26,6 +26,26 @@
   (if (= i 0)
       (cons val (cdr list))
       (cons (car list) (list-update-ref (cdr list) (- i 1) val))))
+
+(define-for-syntax (recursive-replace from to body)
+  (if (and (identifier? body) (free-identifier=? from body))
+      to
+      (let ((unwrap (syntax-e body)))
+        (if (list? unwrap)
+            (map (lambda (e) (recursive-replace from to e)) unwrap)
+            unwrap))))
+
+(define-syntax (each stx)
+  (syntax-protect
+   (syntax-case stx ()
+     [(_ bind-name (various-names ...) body)
+      #'(each bind-name begin (various-names ...) body)]
+     [(_ bind-name wrap-name (various-names ...) body)
+      (datum->syntax #'body
+                     (cons #'wrap-name
+                           (map (lambda (active-name)
+                                  (recursive-replace #'bind-name active-name #'body))
+                                (syntax-e #'(various-names ...)))))])))
 
 ; UNUSED
 (define-syntax (static-length stx)

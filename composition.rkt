@@ -15,29 +15,23 @@
   (set! variant (v+ invariant (vscale (v- variant invariant) distance))))
 
 (define-syntax-rule (composer name ((joint default-x default-y) ...) constraint ... view)
-  (define (name)
-    (define (apply-constraints joints)
+  (define (name [width 300] [height 300])
+    (define calculated-view (void)) ; should get replaced on the initial do-update below
+    
+    (define (update joints)
       (apply (lambda (joint ...)
                constraint ...
+               (set! calculated-view view)
                (list joint ...))
              joints))
     
-    (define joints (apply-constraints (list (v default-x default-y) ...)))
-    
-    (define (calculate-view)
-      (apply (lambda (joint ...) view) joints))
-    
-    (define (set-and-apply-constraints! i vec)
-      (set! joints
-            (apply-constraints (list-update-ref joints i vec))))
-    
-    (define calculated-view (calculate-view))
+    (define joints (update (list (v default-x default-y) ...)))
     
     (define (render dc)
       (r:render-to calculated-view dc))
     (define (get-handles)
       joints)
     (define (update-handle i vec)
-      (set-and-apply-constraints! i vec)
-      (set! calculated-view (calculate-view)))
-    (handle-view render get-handles update-handle)))
+      (set! joints
+            (update (list-update-ref joints i vec))))
+    (handle-view render get-handles update-handle width height)))

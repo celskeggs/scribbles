@@ -3,7 +3,7 @@
 
 (require "utils.rkt")
 
-(define-provide (interactive-view draw press drag move release [title "Interactive View"] [width 300] [height 300])
+(define-provide (interactive-view draw press drag move release [width 300] [height 300] [title "Interactive View"])
   (define frame (new frame% [label title] [width width] [height height]))
   (define my-canvas%
     (class canvas%

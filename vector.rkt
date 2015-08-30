@@ -26,6 +26,12 @@
 (define-provide (vlen v)
   (sqrt (vlen-sq v)))
 
+(define-provide (vdist-sq v1 v2)
+  (vlen-sq (v- v1 v2)))
+
+(define-provide (vdist v1 v2)
+  (sqrt (vdist-sq v1 v2)))
+
 (define-provide (vin-origin-circle? v radius)
   (< (vlen-sq v) (sq radius)))
 
