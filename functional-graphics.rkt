@@ -34,6 +34,8 @@
     (send dc draw-ellipse (- (v-x center) rad) (- (v-y center) rad) (* rad 2) (* rad 2))))
 
 (define-provide (r:all . bodies)
+  (when (ormap void? bodies)
+    (error "r:all does not accept void bodies"))
   (lambda (dc)
     (for ((body bodies))
       (body dc))))

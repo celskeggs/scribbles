@@ -6,29 +6,37 @@
 
 (r:define-style simple-style "black" 6 'solid "white" 'solid)
 
-(composer example ((head 150 75) (collar 150 125) (pelvis 150 225) (left-hand 100 150) (left-elbow 125 125) (right-hand 200 150) (right-elbow 175 125) (left-leg 100 300) (right-leg 200 300))
-          (let* ((body-height (round (vdist collar pelvis)))
+(compose
+ (root collar 250 250)
+ (bone pelvis collar (v 0 100))
+ (bone head collar (v 0 -30) (r:circle head)))
+
+#|
+(define-syntax-rule (bone variant invariant length)
+  (begin
+    (fixed-distance variant invariant length)
+    (r:line variant invariant)))
+
+(define-syntax-rule (limb end joint base length-upper length-lower)
+  (r:all
+   (bone joint base length-upper)
+   (bone end joint length-lower)))
+
+(composer example ((head 150 0) (collar 150 125) (pelvis 150 500) (left-hand 0 500) (left-elbow 0 500) (right-hand 300 500) (right-elbow 300 500) (left-leg 0 500) (right-leg 300 500))
+          (let* ((body-height 100) ; TODO: variable
                  (head-radius (round (/ body-height 2)))
                  (arm-length body-height)
                  (upper-arm-length (/ arm-length 2))
                  (lower-arm-length (/ arm-length 2))
                  (neck-height (round (/ body-height 5)))
                  (leg-length (+ body-height neck-height)))
-            (fixed-distance head collar (+ head-radius neck-height))
-            (fixed-distance left-elbow collar upper-arm-length)
-            (fixed-distance right-elbow collar upper-arm-length)
-            (fixed-distance left-hand left-elbow lower-arm-length)
-            (fixed-distance right-hand right-elbow lower-arm-length)
-            (fixed-distance left-leg pelvis leg-length)
-            (fixed-distance right-leg pelvis leg-length)
-            (simple-style (r:line collar pelvis)
-                          (r:line collar head)
-                          (r:line collar left-elbow)
-                          (r:line left-elbow left-hand)
-                          (r:line collar right-elbow)
-                          (r:line right-elbow right-hand)
-                          (r:line pelvis left-leg)
-                          (r:line pelvis right-leg)
-                          (r:circle head head-radius))))
-
-(example 300 500)
+            (simple-style
+             (bone head collar (+ head-radius neck-height))
+             (bone pelvis collar body-height)
+             (limb left-hand left-elbow collar upper-arm-length lower-arm-length)
+             (limb right-hand right-elbow collar upper-arm-length lower-arm-length)
+             (bone left-leg pelvis leg-length)
+             (bone right-leg pelvis leg-length)
+             (r:circle head head-radius))))
+(example 400 500)
+|#

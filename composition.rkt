@@ -3,35 +3,24 @@
 (require "manipulation-view.rkt")
 (require "vector.rkt")
 (require "functional-graphics.rkt")
+(require racket/generic)
+(require "segments.rkt")
 
-;(define-syntax-rule (specific-distance state variant invariant distance)
-;  (struct-copy ds state
-;               [variant (v+ (get-vector state invariant) (rescale-vector (v- (get-vector state variant) (get-vector state invariant)) distance))]))
-;(specific-distance state skel-head skel-collar (/ (get-distance state skel-collar skel-pelvis) 4)))
+(provide compose fixed-distance root bone)
 
-(provide composer fixed-distance)
+(define (compose-segs segs [width 300] [height 300])
+  (define (calculate)
+    (apply r:all (map (lambda (seg) ((segment-update-and-render seg))) segs)))
+  (define calculated-view (calculate))
 
-(define-syntax-rule (fixed-distance variant invariant distance)
-  (set! variant (v+ invariant (vscale (v- variant invariant) distance))))
+  (define (render-local dc)
+    (r:render-to calculated-view dc))
+  (define (get-handles-local)
+    (map (lambda (seg) ((segment-get seg))) segs))
+  (define (update-handle-local! i vec)
+    ((segment-set (list-ref segs i)) vec)
+    (set! calculated-view (calculate)))
+  (handle-view render-local get-handles-local update-handle-local! width height))
 
-(define-syntax-rule (composer name ((joint default-x default-y) ...) constraint ... view)
-  (define (name [width 300] [height 300])
-    (define calculated-view (void)) ; should get replaced on the initial do-update below
-    
-    (define (update joints)
-      (apply (lambda (joint ...)
-               constraint ...
-               (set! calculated-view view)
-               (list joint ...))
-             joints))
-    
-    (define joints (update (list (v default-x default-y) ...)))
-    
-    (define (render dc)
-      (r:render-to calculated-view dc))
-    (define (get-handles)
-      joints)
-    (define (update-handle i vec)
-      (set! joints
-            (update (list-update-ref joints i vec))))
-    (handle-view render get-handles update-handle width height)))
+(define-syntax-rule (compose element ...)
+  (compose-segs (construct element ...)))
