@@ -1,13 +1,11 @@
 #lang typed/racket
-(require "utils.rkt")
 (require "composition.rkt")
 (require "functional-graphics.rkt")
 (require "vector.rkt")
 
-(require "segments.rkt") ; temporary
-
 (define-syntax-rule (line-bone variant invariant dx dy extra-renders ...)
-  (bone variant invariant (v dx dy) (r:line variant invariant) extra-renders ...))
+  (bone variant invariant (vec dx dy) (r:line variant invariant) extra-renders ...))
+
 (define-syntax line-bone-chain
   (syntax-rules ()
     [(line-bone-chain invariant)

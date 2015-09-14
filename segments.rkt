@@ -1,6 +1,5 @@
 #lang typed/racket
 
-(require "utils.rkt")
 (require "vector.rkt")
 (require "functional-graphics.rkt")
 (require racket/stxparam)
@@ -8,8 +7,8 @@
 
 (provide fixed-distance segment-get segment-set segment-update-and-render segment construct root bone)
 
-(define-type GetSegmentFunc (-> v))
-(define-type SetSegmentFunc (-> v Void))
+(define-type GetSegmentFunc (-> Vector2D))
+(define-type SetSegmentFunc (-> Vector2D Void))
 (define-type UpdateAndRenderSegmentFunc (-> Renderer))
 
 (struct segment ([get : GetSegmentFunc] [set : SetSegmentFunc] [update-and-render : UpdateAndRenderSegmentFunc]) #:transparent)
@@ -23,7 +22,7 @@
 
 (define-syntax-rule (root name x y renders ...)
   (begin
-    (define name (v x y))
+    (define name (vec x y))
     (set! segments
           (cons (segment (lambda () name)
                          (lambda (vn) (set! name vn))

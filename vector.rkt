@@ -1,53 +1,61 @@
 #lang typed/racket
 (require "utils.rkt")
 
-(provide v v-x v-y)
+(provide Vector2D vec vec-x vec-y vunpack v+ v- v*c vlen-sq vlen vdist-sq vdist vin-origin-circle? vin-circle? vscale)
 
-(struct v ([x : Real] [y : Real]) #:transparent)
+(define-type Vector2D vecstr)
 
-(: vunpack (-> v (values Real Real)))
-(define-provide (vunpack v)
-  (values (v-x v) (v-y v)))
+(struct vecstr ([x : Real] [y : Real]) #:transparent)
 
-(: v+ (-> v v v))
-(define-provide (v+ v1 v2)
-  (v (+ (v-x v1) (v-x v2))
-     (+ (v-y v1) (v-y v2))))
+(define vec-x vecstr-x)
+(define vec-y vecstr-y)
 
-(: v- (-> v v v))
-(define-provide (v- v1 v2)
-  (v (- (v-x v1) (v-x v2))
-     (- (v-y v1) (v-y v2))))
+(: vec (-> Real Real Vector2D))
+(define (vec x y) (vecstr x y))
 
-(: v*c (-> v Real v))
-(define-provide (v*c ve c)
-  (v (* c (v-x ve))
-     (* c (v-y ve))))
+(: vunpack (-> Vector2D (values Real Real)))
+(define (vunpack v)
+  (values (vec-x v) (vec-y v)))
 
-(: vlen-sq (-> v Nonnegative-Real))
-(define-provide (vlen-sq v)
-  (+ (sq (v-x v)) (sq (v-y v))))
+(: v+ (-> Vector2D Vector2D Vector2D))
+(define (v+ v1 v2)
+  (vec (+ (vec-x v1) (vec-x v2))
+     (+ (vec-y v1) (vec-y v2))))
 
-(: vlen (-> v Nonnegative-Real))
-(define-provide (vlen v)
+(: v- (-> Vector2D Vector2D Vector2D))
+(define (v- v1 v2)
+  (vec (- (vec-x v1) (vec-x v2))
+     (- (vec-y v1) (vec-y v2))))
+
+(: v*c (-> Vector2D Real Vector2D))
+(define (v*c ve c)
+  (vec (* c (vec-x ve))
+     (* c (vec-y ve))))
+
+(: vlen-sq (-> Vector2D Nonnegative-Real))
+(define (vlen-sq v)
+  (+ (sq (vec-x v)) (sq (vec-y v))))
+
+(: vlen (-> Vector2D Nonnegative-Real))
+(define (vlen v)
   (sqrt (vlen-sq v)))
 
-(: vdist-sq (-> v v Nonnegative-Real))
-(define-provide (vdist-sq v1 v2)
+(: vdist-sq (-> Vector2D Vector2D Nonnegative-Real))
+(define (vdist-sq v1 v2)
   (vlen-sq (v- v1 v2)))
 
-(: vdist (-> v v Nonnegative-Real))
-(define-provide (vdist v1 v2)
+(: vdist (-> Vector2D Vector2D Nonnegative-Real))
+(define (vdist v1 v2)
   (sqrt (vdist-sq v1 v2)))
 
-(: vin-origin-circle? (-> v Nonnegative-Real Boolean))
-(define-provide (vin-origin-circle? v radius)
+(: vin-origin-circle? (-> Vector2D Nonnegative-Real Boolean))
+(define (vin-origin-circle? v radius)
   (< (vlen-sq v) (sq radius)))
 
-(: vin-circle? (-> v v Nonnegative-Real Boolean))
-(define-provide (vin-circle? needle center radius)
+(: vin-circle? (-> Vector2D Vector2D Nonnegative-Real Boolean))
+(define (vin-circle? needle center radius)
   (vin-origin-circle? (v- needle center) radius))
 
-(: vscale (-> v Nonnegative-Real v))
-(define-provide (vscale v len)
+(: vscale (-> Vector2D Nonnegative-Real Vector2D))
+(define (vscale v len)
   (v*c v (/ len (vlen v))))
