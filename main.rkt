@@ -17,13 +17,13 @@
        (line-bone-chain (variant2 dx2 dy2 extra-renders2 ...) rest ...)
        (line-bone variant variant2 dx dy extra-renders ...))]))
 
-(r:define-style simple-style "black" 6 'solid "white" 'solid)
+(define simple-style (r:wrap-style "black" 6 'solid "white" 'solid))
 
 (compose simple-style 500 500
-         (root collar 250 250)
-         (line-bone pelvis collar 0 100)
-         (line-bone head collar 0 -70 (r:circle head 50))
-         (line-bone-chain (left-hand -50 0) (left-elbow -50 0) collar)
-         (line-bone-chain (right-hand 50 0) (right-elbow 50 0) collar)
-         (line-bone-chain (left-foot 0 60) (left-knee -42 42) pelvis)
-         (line-bone-chain (right-foot 0 60) (right-knee 42 42) pelvis))
+         (root 'collar 250 250)
+         (line-bone 'pelvis 'collar 0 100)
+         (line-bone 'head 'collar 0 -70 (r:circle head 50))
+         (line-bone-chain ('left-hand -50 0) ('left-elbow -50 0) 'collar)
+         (line-bone-chain ('right-hand 50 0) ('right-elbow 50 0) 'collar)
+         (line-bone-chain ('left-foot 0 60) ('left-knee -42 42) 'pelvis)
+         (line-bone-chain ('right-foot 0 60) ('right-knee 42 42) 'pelvis))

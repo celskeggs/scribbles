@@ -39,5 +39,6 @@
 
   (handle-view render-local get-handles-local update-handle-local! (list (cons "yellow" save-rendering)) width height))
 
-(define-syntax-rule (compose style width height element ...)
-  (compose-segs style (construct element ...) width height))
+(: compose (-> (-> Renderer * Renderer) Positive-Integer Positive-Integer slotted-segment * Void))
+(define (compose style width height . elements)
+  (compose-segs style (apply construct elements) width height))

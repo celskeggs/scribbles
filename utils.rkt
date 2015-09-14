@@ -1,6 +1,6 @@
 #lang typed/racket
 
-(provide sq enumerate enumerate-generic list-update-ref)
+(provide sq enumerate enumerate-generic list-update-ref set-union*)
 
 (: sq (-> Real Nonnegative-Real))
 (define (sq x)
@@ -24,3 +24,9 @@
   (if (= i 0)
       (cons val (cdr list))
       (cons (car list) (list-update-ref (cdr list) (- i 1) val))))
+
+(: set-union* (All (A) (-> (Listof (Setof A)) (Setof A))))
+(define (set-union* sets)
+  (cond [(empty? sets) (set)]
+        [(empty? (cdr sets)) (car sets)]
+        [else (set-union (car sets) (set-union* (cdr sets)))]))
