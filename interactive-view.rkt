@@ -1,8 +1,15 @@
-#lang racket
-(require racket/gui)
+#lang typed/racket
+(require typed/racket/gui)
+(require typed/racket/draw)
 
 (require "utils.rkt")
 
+(provide DrawFunc MouseFunc)
+
+(define-type DrawFunc (-> (Instance DC<%>) Void))
+(define-type MouseFunc (-> Integer Integer Nonnegative-Integer Nonnegative-Integer Void))
+
+(: interactive-view (->* (DrawFunc MouseFunc MouseFunc MouseFunc MouseFunc) (Positive-Integer Positive-Integer String) Void))
 (define-provide (interactive-view draw press drag move release [width 300] [height 300] [title "Interactive View"])
   (define frame (new frame% [label title] [width width] [height height]))
   (define my-canvas%

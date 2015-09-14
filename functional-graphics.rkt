@@ -1,7 +1,14 @@
-#lang racket
+#lang typed/racket
+(require typed/racket/draw)
+
 (require "utils.rkt")
 (require "vector.rkt")
 
+(provide Renderer)
+
+(define-type Renderer (-> (Instance DC<%>) Void))
+
+(: r:pen (-> String Positive-Integer Pen-Style Renderer * Renderer))
 (define-provide (r:pen color width style . bodies)
   (lambda (dc)
     (let ((orig-pen (send dc get-pen)))
@@ -9,6 +16,7 @@
       (for ((body bodies))
         (body dc))
       (send dc set-pen orig-pen))))
+(: r:brush (-> String Brush-Style Renderer * Renderer))
 (define-provide (r:brush color style . bodies)
   (lambda (dc)
     (let ((orig-brush (send dc get-brush)))
@@ -16,23 +24,29 @@
       (for ((body bodies))
         (body dc))
       (send dc set-brush orig-brush))))
+(: r:style (-> String Positive-Integer Pen-Style String Brush-Style Renderer * Renderer))
 (define-provide (r:style pen-color pen-width pen-style brush-color brush-style . bodies)
   (r:pen pen-color pen-width pen-style
          (r:brush brush-color brush-style
                   (apply r:all bodies))))
 (provide r:define-style)
 (define-syntax-rule (r:define-style name pen-color pen-width pen-style brush-color brush-style)
-  (define (name . bodies)
-    (r:style pen-color pen-width pen-style brush-color brush-style
-             (apply r:all bodies))))
+  (begin
+    (: name (-> Renderer * Renderer))
+    (define (name . bodies)
+      (r:style pen-color pen-width pen-style brush-color brush-style
+               (apply r:all bodies)))))
 
+(: r:line (-> v v Renderer))
 (define-provide (r:line v1 v2)
   (lambda (dc)
     (send dc draw-line (v-x v1) (v-y v1) (v-x v2) (v-y v2))))
+(: r:circle (-> v Positive-Integer Renderer))
 (define-provide (r:circle center rad)
   (lambda (dc)
     (send dc draw-ellipse (- (v-x center) rad) (- (v-y center) rad) (* rad 2) (* rad 2))))
 
+(: r:all (-> Renderer * Renderer))
 (define-provide (r:all . bodies)
   (when (ormap void? bodies)
     (error "r:all does not accept void bodies"))
@@ -40,6 +54,7 @@
     (for ((body bodies))
       (body dc))))
 
+(: r:render-to (-> Renderer (Instance DC<%>) Void))
 (define-provide (r:render-to rf dc)
   (let ((orig-brush (send dc get-brush))
         (orig-pen (send dc get-pen))
@@ -55,3 +70,10 @@
     (send dc set-pen orig-pen)
     (send dc set-smoothing orig-smoothing)
     (send dc set-transformation orig-transform)))
+
+(: r:save-to (->* (Renderer Positive-Integer Positive-Integer String) ((U 'png 'jpeg 'xbm 'xpm 'bmp)) Void))
+(define-provide (r:save-to rf w h file [kind 'png])
+  (let ((bmp (make-bitmap w h)))
+    (r:render-to rf (send bmp make-dc))
+    (send bmp save-file file kind)
+    (void)))

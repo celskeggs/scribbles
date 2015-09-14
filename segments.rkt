@@ -1,15 +1,18 @@
-#lang racket
+#lang typed/racket
 
 (require "utils.rkt")
 (require "vector.rkt")
 (require "functional-graphics.rkt")
-(require racket/generic)
 (require racket/stxparam)
 (require racket/splicing)
 
-(provide fixed-distance segment-get segment-set segment-update-and-render construct root bone)
+(provide fixed-distance segment-get segment-set segment-update-and-render segment construct root bone)
 
-(struct segment (get set update-and-render) #:inspector #f)
+(define-type GetSegmentFunc (-> v))
+(define-type SetSegmentFunc (-> v Void))
+(define-type UpdateAndRenderSegmentFunc (-> Renderer))
+
+(struct segment ([get : GetSegmentFunc] [set : SetSegmentFunc] [update-and-render : UpdateAndRenderSegmentFunc]) #:transparent)
 
 (define-syntax-parameter segments
   (lambda (stx)
@@ -34,16 +37,11 @@
     (set! segments
           (cons (segment (lambda () variant)
                          (lambda (vn) (set! variant vn))
-                         (lambda () (fixed-distance variant invariant distance)))
+                         (lambda () (fixed-distance variant invariant distance) (r:all extra-render ...)))
                 segments))))
 
 (define-syntax-rule (construct element ...)
-  (let ((local-segments empty))
+  (let ((local-segments : (Listof segment) empty))
     (splicing-syntax-parameterize ([segments (make-rename-transformer #'local-segments)])
       element ...)
-    local-segments))
-
-#|(construct
- (root collar 250 250)
- (bone pelvis collar (v 0 100))
- (bone head collar (v 0 -30) (r:circle head)))|#
+    (reverse local-segments)))
