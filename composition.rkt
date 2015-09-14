@@ -36,5 +36,5 @@
           (r:save-to calculated-view w h (path->string path))))))
   (handle-view render-local get-handles-local update-handle-local! (list (cons "yellow" save-rendering)) width height))
 
-(define-syntax-rule (compose element ...)
-  (compose-segs (construct element ...)))
+(define-syntax-rule (compose style width height element ...)
+  (compose-segs style (construct element ...) width height))

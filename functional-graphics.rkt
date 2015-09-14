@@ -73,7 +73,11 @@
 
 (: r:save-to (->* (Renderer Positive-Integer Positive-Integer String) ((U 'png 'jpeg 'xbm 'xpm 'bmp)) Void))
 (define-provide (r:save-to rf w h file [kind 'png])
-  (let ((bmp (make-bitmap w h)))
-    (r:render-to rf (send bmp make-dc))
+  (let* ((bmp (make-bitmap w h))
+         (dc (send bmp make-dc)))
+    (send dc set-brush "white" 'solid)
+    (send dc set-pen "white" 1 'solid)
+    (send dc draw-rectangle 0 0 w h)
+    (r:render-to rf dc)
     (send bmp save-file file kind)
     (void)))
