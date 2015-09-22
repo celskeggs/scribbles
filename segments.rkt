@@ -2,71 +2,89 @@
 (require "utils.rkt")
 (require "vector.rkt")
 (require "functional-graphics.rkt")
+(require "body.rkt")
 
 (require racket/stxparam)
 (require racket/splicing)
 
-(provide fixed-distance segment-get segment-set segment-update-and-render segment construct root bone slotted-segment)
+(provide fixed-distance construct root bone RenderSegment Vector2Ds Element)
 
-(define-type GetSegmentFunc (-> Vector2D))
-(define-type SetSegmentFunc (-> Vector2D Void))
-(define-type UpdateAndRenderSegmentFunc (-> Renderer))
+(define-type ElementTree (U Element (Listof ElementTree)))
 
-(struct segment ([get : GetSegmentFunc] [set : SetSegmentFunc] [update-and-render : UpdateAndRenderSegmentFunc]) #:transparent)
+(define-type Vector2Ds (-> Symbol Vector2D))
+(define-type GetVector (-> Vector2D))
+(define-type SetVector (-> Vector2D Void))
+(define-type UpdateSegment (-> Vector2Ds Void))
+(define-type RenderSegment (-> Vector2Ds Renderer))
+(define-type Element element)
 
-(define-type SegmentProducer (-> (HashTable Symbol segment) (Listof segment)))
-
-(struct slotted-segment ([provides : (Setof Symbol)] [requires : (Setof Symbol)] [seg : SegmentProducer]) #:transparent)
+(struct element ([name : Symbol]
+                 [get : GetVector]
+                 [set : SetVector]
+                 [init : UpdateSegment]
+                 [update : UpdateSegment]
+                 [render : RenderSegment]
+                 [requires : (Setof Symbol)]) #:transparent)
 
 (: fixed-distance (-> Vector2D Vector2D Nonnegative-Real Vector2D))
 (define (fixed-distance variant invariant distance)
   (v+ invariant (vscale (v- variant invariant) distance)))
 
-(: root-body (-> Symbol Real Real (Listof Renderer) SegmentProducer))
-(define ((root-body name x y renders) seghash)
+(: root (->* (Symbol Real Real) ((Listof RenderSegment)) Element))
+(define (root name x y [renders empty])
   (define position (vec x y))
-  (define seg (segment (lambda () position)
-                           (lambda (vn) (set! position vn))
-                           (lambda () (apply r:all renders))))
-  (hash-set! seghash name seg)
-  (list seg))
+  (element name
+           (lambda () position)
+           (lambda (new) (set! position new))
+           void ; no init necessary
+           void ; no updating necessary
+           (lambda (lookup) (apply r:all (apply-map renders lookup)))
+           (set)))
 
-(: root (-> Symbol Real Real Renderer * slotted-segment))
-(define (root name x y . renders)
-  (slotted-segment (set name) (set) (root-body name x y renders)))
-
-(: bone-body (-> Symbol Symbol Vector2D (Listof Renderer) SegmentProducer))
-(define ((bone-body variant invariant delta extra-renders) seghash)
+(: bone (->* (Symbol Symbol Real Real) ((Listof RenderSegment)) Element))
+(define (bone variant invariant dx dy [renders empty])
+  (define position (vec dx dy))
   (: distance Nonnegative-Real)
-  (define distance (vlen delta))
-  (: position Vector2D)
-  (define position (v+ ((segment-get (hash-ref seghash invariant))) delta)) ; TODO: make this less brittle in the face of different orders
-  (define seg (segment (lambda () position)
-                           (lambda (vn) (set! position vn))
-                           (lambda ()
-                             (set! position (fixed-distance position ((segment-get (hash-ref seghash invariant))) distance)) ; TODO: make this nicer
-                             (apply r:all extra-renders))))
-  (hash-set! seghash variant seg)
-  (list seg))
+  (define distance (vlen (vec dx dy)))
+  (element variant
+           (lambda () position)
+           (lambda (new) (set! position new))
+           (lambda (lookup) (set! position (v+ (vec dx dy) (lookup invariant))))
+           (lambda (lookup) (set! position (fixed-distance position (lookup invariant) distance)))
+           (lambda (lookup) (apply r:all (apply-map renders lookup)))
+           (set invariant)))
 
-(: bone (-> Symbol Symbol Vector2D Renderer * slotted-segment))
-(define (bone variant invariant delta . renders)
-  (slotted-segment (set variant) (set invariant) (bone-body variant invariant delta renders)))
+(: chop-trees (-> ElementTree (Listof Element)))
+(define (chop-trees element-tree)
+  (if (list? element-tree)
+      (append* (map chop-trees element-tree))
+      (list element-tree)))
 
-(: construct (-> slotted-segment * (Listof segment)))
-(define (construct . elements)
-  (: current-segments (HashTable Symbol segment))
-  (define current-segments (make-hash))
-  (: segments-list (Listof segment))
-  (define segments-list empty)
-  (define available-names (set-union* (map slotted-segment-provides elements)))
-  (define required-names (set-union* (map slotted-segment-requires elements)))
-  (define missing-names (set-subtract required-names available-names))
-  (unless (set-empty? missing-names)
-    (error "could not find segments:" missing-names))
+(: construct (-> ElementTree * Body))
+(define (construct . element-trees)
+  (: elements (Listof Element))
+  (define elements (chop-trees element-trees))
+  (: lookup-hash (HashTable Symbol GetVector))
+  (define lookup-hash (make-hash (for/list : (Listof (Pairof Symbol GetVector)) ((elem elements))
+                                   (cons (element-name elem) (element-get elem)))))
+  (unless (= (length elements) (hash-count lookup-hash))
+    (error "duplicate names!"))
+  (unless (subset? (set-union* (map element-requires elements)) (list->set (hash-keys lookup-hash)))
+    (error "Missing requirements:" (set-subtract (set-union* (map element-requires elements)) (list->set (hash-keys lookup-hash)))))
+  (: lookup Vector2Ds)
+  (define (lookup x)
+    ((hash-ref lookup-hash x)))
+  (: get-vectors (-> (Listof Vector2D)))
+  (define (get-vectors)
+    (apply-each (map element-get elements)))
+  (: set-vector! (-> Nonnegative-Integer Vector2D Void))
+  (define (set-vector! i vec)
+    ((element-set (list-ref elements i)) vec))
+  (define (update-and-render!)
+    (apply-map (map element-update elements) lookup)
+    (apply r:all (apply-map (map element-render elements) lookup)))
 
-  (for ((element elements))
-    (unless (void? element)
-      (set! segments-list (append ((slotted-segment-seg element) current-segments) segments-list))))
+  ; initialize
+  (apply-map (map element-init elements) lookup)
 
-  (reverse segments-list))
+  (body-new get-vectors set-vector! update-and-render!))

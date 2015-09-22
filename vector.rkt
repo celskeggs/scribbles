@@ -20,17 +20,17 @@
 (: v+ (-> Vector2D Vector2D Vector2D))
 (define (v+ v1 v2)
   (vec (+ (vec-x v1) (vec-x v2))
-     (+ (vec-y v1) (vec-y v2))))
+       (+ (vec-y v1) (vec-y v2))))
 
 (: v- (-> Vector2D Vector2D Vector2D))
 (define (v- v1 v2)
   (vec (- (vec-x v1) (vec-x v2))
-     (- (vec-y v1) (vec-y v2))))
+       (- (vec-y v1) (vec-y v2))))
 
 (: v*c (-> Vector2D Real Vector2D))
 (define (v*c ve c)
   (vec (* c (vec-x ve))
-     (* c (vec-y ve))))
+       (* c (vec-y ve))))
 
 (: vlen-sq (-> Vector2D Nonnegative-Real))
 (define (vlen-sq v)

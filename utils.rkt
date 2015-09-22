@@ -1,6 +1,6 @@
 #lang typed/racket
 
-(provide sq enumerate enumerate-generic list-update-ref set-union*)
+(provide sq enumerate enumerate-generic set-union* apply-map apply-each without)
 
 (: sq (-> Real Nonnegative-Real))
 (define (sq x)
@@ -19,14 +19,24 @@
       (cons (combiner start-at (car seq))
             (enumerate-generic (ann (cdr seq) (Listof Element)) combiner (ann (+ start-at 1) Nonnegative-Integer)))))
 
-(: list-update-ref (-> (Listof Any) Nonnegative-Integer Any (Listof Any)))
-(define (list-update-ref list i val)
-  (if (= i 0)
-      (cons val (cdr list))
-      (cons (car list) (list-update-ref (cdr list) (- i 1) val))))
-
 (: set-union* (All (A) (-> (Listof (Setof A)) (Setof A))))
 (define (set-union* sets)
   (cond [(empty? sets) (set)]
         [(empty? (cdr sets)) (car sets)]
         [else (set-union (car sets) (set-union* (cdr sets)))]))
+
+(: apply-map (All (In Out) (-> (Listof (-> In Out)) In (Listof Out))))
+(define (apply-map fs in)
+  (if (empty? fs)
+      empty
+      (cons ((car fs) in) (apply-map (cdr fs) in))))
+
+(: apply-each (All (Out) (-> (Listof (-> Out)) (Listof Out))))
+(define (apply-each fs)
+  (if (empty? fs)
+      empty
+      (cons ((car fs)) (apply-each (cdr fs)))))
+
+(: without (All (E) (-> (Listof E) E (Listof E))))
+(define (without l e)
+  (filter-not (curry equal? e) l))

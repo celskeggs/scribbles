@@ -3,14 +3,15 @@
 
 (require "vector.rkt")
 
-(provide Renderer
+(provide Renderer Style
          r:pen r:brush r:style r:wrap-style
          r:all r:circle r:line
          r:render-to r:save-to)
 
 (define-type Renderer (-> (Instance DC<%>) Void))
+(define-type Style (-> Renderer * Renderer))
 
-(: r:wrap-style (-> String Positive-Integer Pen-Style String Brush-Style (-> Renderer * Renderer)))
+(: r:wrap-style (-> String Positive-Integer Pen-Style String Brush-Style Style))
 (define ((r:wrap-style pen-color pen-width pen-style brush-color brush-style) . bodies)
   (r:style pen-color pen-width pen-style brush-color brush-style
            (apply r:all bodies)))
