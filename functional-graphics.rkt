@@ -3,53 +3,96 @@
 
 (require "vector.rkt")
 
-(provide Renderer Style
+(provide Renderer Style Color
          r:pen r:brush r:style r:wrap-style
-         r:all r:circle r:line
-         r:render-to r:save-to)
+         r:all r:circle r:line r:rect r:text r:blank
+         r:render-to r:save-to r:contains
+         [rename-out (make-color r:color)])
 
-(define-type Renderer (-> (Instance DC<%>) Void))
+(define-type Color (U String (Instance Color%)))
+(define-type Renderer (Pairof (-> (Instance DC<%>) Void) (-> Real Real Boolean)))
 (define-type Style (-> Renderer * Renderer))
 
-(: r:wrap-style (-> String Positive-Integer Pen-Style String Brush-Style Style))
+(define-syntax-rule (genren (dc x y) render check)
+  (cons (lambda ([dc : (Instance DC<%>)])
+          render)
+        (lambda ([x : Real] [y : Real])
+          check)))
+
+(: r:wrap-style (-> Color Positive-Integer Pen-Style Color Brush-Style Style))
 (define ((r:wrap-style pen-color pen-width pen-style brush-color brush-style) . bodies)
   (r:style pen-color pen-width pen-style brush-color brush-style
            (apply r:all bodies)))
 
-(: r:pen (-> String Positive-Integer Pen-Style Renderer * Renderer))
-(define ((r:pen color width style . bodies) dc)
-  (let ((orig-pen (send dc get-pen)))
-    (send dc set-pen color width style)
-    (for ((body bodies))
-      (body dc))
-    (send dc set-pen orig-pen)))
+(: r:pen (-> Color Positive-Integer Pen-Style Renderer * Renderer))
+(define (r:pen color width style . bodies)
+  (genren (dc x y)
+          (let ((orig-pen (send dc get-pen)))
+            (send dc set-pen color width style)
+            (for ((body : Renderer bodies))
+              ((car body) dc))
+            (send dc set-pen orig-pen))
+          (for/or : Boolean ((body : Renderer bodies))
+            ((cdr body) x y))))
 
-(: r:brush (-> String Brush-Style Renderer * Renderer))
-(define ((r:brush color style . bodies) dc)
-  (let ((orig-brush (send dc get-brush)))
-    (send dc set-brush color style)
-    (for ((body bodies))
-      (body dc))
-    (send dc set-brush orig-brush)))
+(: r:brush (-> Color Brush-Style Renderer * Renderer))
+(define (r:brush color style . bodies)
+  (genren (dc x y)
+          (let ((orig-brush (send dc get-brush)))
+            (send dc set-brush color style)
+            (for ((body : Renderer bodies))
+              ((car body) dc))
+            (send dc set-brush orig-brush))
+          (for/or : Boolean ((body : Renderer bodies))
+            ((cdr body) x y))))
 
-(: r:style (-> String Positive-Integer Pen-Style String Brush-Style Renderer * Renderer))
+(: r:style (-> Color Positive-Integer Pen-Style Color Brush-Style Renderer * Renderer))
 (define (r:style pen-color pen-width pen-style brush-color brush-style . bodies)
   (r:pen pen-color pen-width pen-style
          (r:brush brush-color brush-style
                   (apply r:all bodies))))
 
 (: r:line (-> Vector2D Vector2D Renderer))
-(define ((r:line v1 v2) dc)
-  (send dc draw-line (vec-x v1) (vec-y v1) (vec-x v2) (vec-y v2)))
+(define (r:line v1 v2)
+  (genren (dc x y)
+          (send dc draw-line (vec-x v1) (vec-y v1) (vec-x v2) (vec-y v2))
+          #f)) ; TODO: allow line collision detection?
 
 (: r:circle (-> Vector2D Positive-Integer Renderer))
-(define ((r:circle center rad) dc)
-  (send dc draw-ellipse (- (vec-x center) rad) (- (vec-y center) rad) (* rad 2) (* rad 2)))
+(define (r:circle center rad)
+  (genren (dc x y)
+          (send dc draw-ellipse (- (vec-x center) rad) (- (vec-y center) rad) (* rad 2) (* rad 2))
+          (vin-circle? (vec x y) center rad)))
+
+(: r:rect (-> Vector2D Positive-Real Positive-Real Renderer))
+(define (r:rect pos width height)
+  (genren (dc x y)
+          (send dc draw-rectangle (vec-x pos) (vec-y pos) width height)
+          (vin-rectangle? (vec x y) pos (vec width height))))
+
+(: r:blank (-> Vector2D Positive-Real Positive-Real Renderer))
+(define (r:blank pos width height)
+  (genren (dc x y)
+          (void)
+          (vin-rectangle? (vec x y) pos (vec width height))))
+
+(: r:text (-> Vector2D String Renderer))
+(define (r:text pos text)
+  (genren (dc x y)
+          (send dc draw-text text (vec-x pos) (vec-y pos) #t)
+          #f)) ; TODO: allow text collision detection?
 
 (: r:all (-> Renderer * Renderer))
-(define ((r:all . bodies) dc)
-  (for ((body bodies))
-    (body dc)))
+(define (r:all . bodies)
+  (genren (dc x y)
+          (for ((body : Renderer bodies))
+            ((car body) dc))
+          (for/or : Boolean ((body : Renderer bodies))
+            ((cdr body) x y))))
+
+(: r:contains (-> Renderer Real Real Boolean))
+(define (r:contains rf x y)
+  ((cdr rf) x y))
 
 (: r:render-to (-> Renderer (Instance DC<%>) Void))
 (define (r:render-to rf dc)
@@ -62,7 +105,7 @@
     (send dc set-rotation 0)
     (send dc set-scale 1 1)
     (send dc set-smoothing 'aligned)
-    (rf dc)
+    ((car rf) dc)
     (send dc set-brush orig-brush)
     (send dc set-pen orig-pen)
     (send dc set-smoothing orig-smoothing)
