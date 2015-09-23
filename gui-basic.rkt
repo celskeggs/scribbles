@@ -7,7 +7,6 @@
 (provide MouseFunc RendererFunc gui-basic)
 
 (define-type MouseFunc (-> Nonnegative-Integer Nonnegative-Integer Positive-Integer Positive-Integer Void))
-(define-type RendererFunc (-> Nonnegative-Integer Nonnegative-Integer Renderer))
 
 (: gui-basic (-> RendererFunc MouseFunc MouseFunc MouseFunc MouseFunc Positive-Integer Positive-Integer String Void))
 (define (gui-basic provide-renderer press drag move release width height title)

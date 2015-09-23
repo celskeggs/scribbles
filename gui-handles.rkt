@@ -17,8 +17,7 @@
 
 (define handle-radius 6)
 
-;(: handle-view (->* (RenderFunc GetHandleFunc UpdateHandleFunc (Listof (Pairof String ButtonPressFunc))) (Positive-Integer Positive-Integer Positive-Integer Positive-Integer) Void))
-(: gui-handles (-> RendererFunc (DynListOf Vector2D) (MutListOf Control) (-> Boolean) Positive-Integer Positive-Integer String Void))
+(: gui-handles (-> RendererFunc (MutListOf (Mutable Vector2D)) (MutListOf Control) (-> Boolean) Positive-Integer Positive-Integer String Void))
 (define (gui-handles render-body handles controls in-view-mode? width height title)
 
   (: drag-status (U #f active-drag))
@@ -41,7 +40,7 @@
   (: handle-style (-> Nonnegative-Integer Vector2D Style))
   (define (handle-style id pos)
     (let ((drag drag-status))
-      (if (via drag (curry eqv? id))
+      (if (and drag (= id (active-drag-index drag)))
           drag-style
           (if (hovering? pos)
               hover-style
@@ -58,7 +57,7 @@
         client-render
         (r:all client-render
                (apply controls-style (apply-map2 ((inst map RendererFunc Control) car (controls)) w h))
-               (let ((handles (dynlist-get handles)))
+               (let ((handles (map (inst mut-get Vector2D) (handles))))
                  (apply r:all (map render-handle (range 0 (length handles)) handles))))))
   
             #| old controls
@@ -86,7 +85,7 @@
   (: press MouseFunc)
   (define (press x y w h)
     (set! mouse-pos (vec x y))
-    (or (let ((handles (dynlist-get handles)))
+    (or (let ((handles (map (inst mut-get Vector2D) (handles))))
           (ormap try-drag-handle (range 0 (length handles)) handles))
         (try-control-click x y w h))
     (void)) ; void because we don't care about any results
@@ -95,7 +94,8 @@
   (define (update-dragging)
     (let ((drag drag-status))
       (when drag
-        (dynlist-set! handles (active-drag-index drag) (v+ (active-drag-rel drag) mouse-pos)))))
+        (mut-set! (list-ref (handles) (active-drag-index drag))
+                  (v+ (active-drag-rel drag) mouse-pos)))))
 
   (: drag MouseFunc)
   (define (drag x y w h)

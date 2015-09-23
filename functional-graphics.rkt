@@ -3,11 +3,13 @@
 
 (require "vector.rkt")
 
-(provide Renderer Style Color
+(provide Renderer Style Color RendererFunc
          r:pen r:brush r:style r:wrap-style
          r:all r:circle r:line r:rect r:text r:blank
          r:render-to r:save-to r:contains
          [rename-out (make-color r:color)])
+
+(define-type RendererFunc (-> Nonnegative-Integer Nonnegative-Integer Renderer))
 
 (define-type Color (U String (Instance Color%)))
 (define-type Renderer (Pairof (-> (Instance DC<%>) Void) (-> Real Real Boolean)))

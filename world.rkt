@@ -1,42 +1,48 @@
 #lang typed/racket
 (require "utils.rkt")
-(require "body.rkt")
+(require "entity.rkt")
+(require "vector.rkt")
 (require "functional-graphics.rkt")
-(require "composition.rkt")
-(require "saving.rkt")
 
-(provide World world-new world-add world-style-ref world-body-ref world-scene ButtonPressFunc)
+(provide World world-new
+         world->mutlist world->handles world-selected world-entities world-selected-entity
+         world-add world-delete-selected)
 
 (define-type World world)
-(struct world ([style : Style] [bodies : (Listof Body)]) #:mutable)
+(struct world ([entities : (Listof Entity)] [selected : (U #f Nonnegative-Integer)]) #:mutable)
 
-(: world-new (-> Style World))
-(define (world-new style)
-  (world style empty))
+(: world->mutlist (-> World (MutListOf Entity)))
+(define (world->mutlist world)
+  (lambda () (world-entities world)))
 
-(: world-add (-> World Body (-> Void)))
-(define (world-add world body)
-  (set-world-bodies! world (cons body (world-bodies world)))
-  (define already #f)
-  (lambda () (unless already (set! already #f) (set-world-bodies! world (without (world-bodies world) body)))))
+(: world->handles (-> World (MutListOf (Mutable Vector2D))))
+(define (world->handles world)
+  (mutlist-append* (mutlist-enum-map (lambda ([i : Nonnegative-Integer] [vecs : (MutListOf (Mutable Vector2D))])
+                                       ; This allows us to know which entity was last modified - hence, last selected.
+                                       (mutlist-map (curry (inst mut-wrap-set Vector2D)
+                                                           (lambda ([vec : Vector2D])
+                                                             (set-world-selected! world i)
+                                                             vec))
+                                                    vecs))
+                                     (mutlist-map entity-handles (world->mutlist world)))))
 
-(: world-style-ref (-> World Style))
-(define (world-style-ref world)
-  (: app (-> Renderer * Renderer))
-  (define (app . renders)
-    (apply (world-style world) renders))
-  app)
+(: world-new (-> World))
+(define (world-new)
+  (world (list) #f))
 
-(: world-body-ref (-> World Body))
-(define (world-body-ref world)
-  (body-merge (lambda ()
-                (reverse (world-bodies world)))))
+(: world-selected-entity (-> World (U #f Entity)))
+(define (world-selected-entity world)
+  (let ((selected (world-selected world)))
+    (and selected (list-ref (world-entities world) selected))))
 
-(: world-scene (->* (World Positive-Integer Positive-Integer) ((Listof (Pairof String ButtonPressFunc))) Void))
-(define (world-scene world w h [buttons empty])
-  (compose-scene (world-style-ref world)
-                 (world-body-ref world)
-                 buttons
-                 w h))
+(: world-add (-> World Entity Void))
+(define (world-add world ent)
+  (set-world-entities! world (cons ent (world-entities world))))
 
-;(: world-save (-> 
+(: world-delete-selected (-> World Boolean))
+(define (world-delete-selected world)
+  (let ((selected (world-selected world)))
+    (and selected
+         (begin
+           (set-world-entities! world (without-i (world-entities world) selected))
+           #t))))

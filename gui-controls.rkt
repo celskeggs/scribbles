@@ -1,41 +1,29 @@
 #lang typed/racket
-(require (only-in typed/racket/gui
-                  put-file))
-
 (require "utils.rkt")
 (require "vector.rkt")
 (require "gui-handles.rkt")
 (require "functional-graphics.rkt")
+(require "entity.rkt")
 
-(provide gui-controls Setting Button button setting-slider setting-option)
+(provide gui-controls Button ButtonPress RendererFunc button setting-slider setting-option)
 
 (define button-size 40)
 (define control-height 30)
 (define control-spacing (+ control-height 10))
 (define slider-width 150)
 
-(struct btn ([press : (-> Void)] [color : Color]))
+(define-type ButtonPress (-> Positive-Integer Positive-Integer Void))
+(struct btn ([press : ButtonPress] [color : Color]))
 (define-type Button btn)
-(: button (-> (-> Void) Color Button))
+(: button (-> ButtonPress Color Button))
 (define (button press color)
   (btn press color))
 
 (: button->control (-> Vector2D Button Control))
 (define (button->control pos button)
   (list (lambda (w h) (r:brush (btn-color button) 'solid (r:rect pos button-size button-size)))
-        (lambda (x y w h) ((btn-press button)))
+        (lambda (x y w h) ((btn-press button) w h))
         void))
-
-(define-type Setting (U (List String 'slider Real Real (Boxof Real))
-                        (List String 'option (Boxof Boolean))))
-
-(: setting-slider (-> String Real Real (Boxof Real) Setting))
-(define (setting-slider name min max value-box)
-  (list name 'slider min max value-box))
-
-(: setting-option (-> String (Boxof Boolean) Setting))
-(define (setting-option name value-box)
-  (list name 'option value-box))
 
 (: setting->control (-> Vector2D Setting Control))
 (define (setting->control pos setting)
@@ -63,7 +51,7 @@
                 (lambda (x y w h) (set-box! value-box (not (unbox value-box))))
                 void)))))
 
-(: gui-controls (-> (DynListOf Vector2D) (MutListOf Setting) RendererFunc (Listof Button) Positive-Integer Positive-Integer String Void))
+(: gui-controls (-> (MutListOf (Mutable Vector2D)) (MutListOf Setting) RendererFunc (Listof Button) Positive-Integer Positive-Integer String Void))
 (define (gui-controls handles settings render buttons width height title)
 
   (: view-mode Boolean)
@@ -93,14 +81,16 @@
   (define test-vec (vec 30 30))
   (define slider-value (box (ann 0 Real)))
   (define option-value (box (ann #f Boolean)))
-  (gui-controls (dynlist-lambda (Vector2D) (list (if (unbox option-value)
+  (gui-controls (list->mutlist (list (mut-make (lambda ()
+                                                 (if (unbox option-value)
                                                      (v+ test-vec (vec (unbox slider-value) 0))
                                                      test-vec))
-                                (i v) (if (unbox option-value)
-                                          (set! test-vec (v- v (vec (unbox slider-value) 0)))
-                                          (set! test-vec v)))
+                                               (lambda ([v : Vector2D])
+                                                 (if (unbox option-value)
+                                                     (set! test-vec (v- v (vec (unbox slider-value) 0)))
+                                                     (set! test-vec v))))))
                 (list->mutlist (list (setting-slider "Test Slider" -30 30 slider-value)
                                      (setting-option "Test Option" option-value)))
                 (lambda (w h) (r:line test-vec (vec (/ w 2) (/ h 2))))
-                (list (button (lambda () (displayln "HELLO WORLD")) "red"))
+                (list (button (lambda (w h) (displayln "HELLO WORLD")) "red"))
                 600 600 "Test of gui-controls"))

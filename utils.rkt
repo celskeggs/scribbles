@@ -1,7 +1,7 @@
 #lang typed/racket
-(provide sq enumerate enumerate-generic list->hash set-union* apply-map2 apply-map apply-each without via normalize denormalize
-         DynListOf dynlist-get dynlist-set! dynlist-construct dynlist-lambda list->mutlist
-         MutListOf mutlist-map mutlist-enum-map mutlist-append)
+(provide sq enumerate enumerate-generic list->hash set-union* apply-map2 apply-map apply-each without without-i normalize denormalize
+         MutListOf mutlist-map mutlist-enum-map mutlist-append mutlist-append* list->mutlist mutlist-via
+         Mutable mut-set! mut-get mut-make mut-wrap-set)
 
 ; mutable lists
 
@@ -11,6 +11,11 @@
 (define (mutlist-map f lst)
   (lambda ()
     (map f (lst))))
+
+(: mutlist-via (All (In Out) (-> (MutListOf In) (-> (Listof In) (Listof Out)) (MutListOf Out))))
+(define (mutlist-via lst f)
+  (lambda ()
+    (f (lst))))
 
 (: mutlist-enum-map (All (In Out) (-> (-> Nonnegative-Integer In Out) (MutListOf In) (MutListOf Out))))
 (define (mutlist-enum-map f lst)
@@ -31,25 +36,33 @@
     (lambda ()
       (append* (apply-each lists)))))
 
-; dynamic lists
+(: mutlist-append* (All (E) (-> (MutListOf (MutListOf E)) (MutListOf E))))
+(define (mutlist-append* lsts)
+  (lambda ()
+    (append* (apply-each (lsts)))))
 
-(define-type (DynListOf E) (Pairof (-> (Listof E)) (-> Nonnegative-Integer E Void)))
+; mutable values
 
-(define-syntax-rule (dynlist-lambda (E) a (i v) b)
-  (cons (lambda () a)
-        (lambda ([i : Nonnegative-Integer] [v : E]) b)))
+(struct (Element) mutable ([get : (-> Element)] [set! : (-> Element Void)]))
+(define-type (Mutable E) (mutable E))
 
-(: dynlist-construct (All (E) (-> (-> (Listof E)) (-> Nonnegative-Integer E Void) (DynListOf E))))
-(define (dynlist-construct a b)
-  (cons a b))
+(: mut-make (All (E) (-> (-> E) (-> E Void) (Mutable E))))
+(define (mut-make get set!)
+  (mutable get set!))
 
-(: dynlist-get (All (E) (-> (DynListOf E) (Listof E))))
-(define (dynlist-get dl)
-  ((car dl)))
+(: mut-set! (All (E) (-> (Mutable E) E Void)))
+(define (mut-set! mut v)
+  ((mutable-set! mut) v))
 
-(: dynlist-set! (All (E) (-> (DynListOf E) Nonnegative-Integer E Void)))
-(define (dynlist-set! dl i e)
-  ((cdr dl) i e))
+(: mut-get (All (E) (-> (Mutable E) E)))
+(define (mut-get mut)
+  ((mutable-get mut)))
+
+(: mut-wrap-set (All (E) (-> (-> E E) (Mutable E) (Mutable E))))
+(define (mut-wrap-set f mut)
+  (mut-make (mutable-get mut)
+            (lambda ([value : E])
+              (mut-set! mut (f value)))))
 
 ; everything else
 
@@ -104,9 +117,11 @@
 (define (without l e)
   (filter-not (curry equal? e) l))
 
-(: via (All (In Out) (-> (Option In) (-> In Out) (Option Out))))
-(define (via x f)
-  (if x (f x) #f))
+(: without-i (All (E) (-> (Listof E) Nonnegative-Integer (Listof E))))
+(define (without-i l i)
+  (cond ((empty? l) empty)
+        ((= i 0) (cdr l))
+        (else (cons (car l) (without-i (cdr l) (- i 1))))))
 
 (: normalize (-> Real Real Real Real))
 (define (normalize min max value) ; convert to [0, 1] range.
