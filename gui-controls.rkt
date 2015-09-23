@@ -86,42 +86,21 @@
                     (mutlist-enum-map (lambda ([i : Nonnegative-Integer] [x : Setting])
                                         (setting->control (vec 0 (+ 200 (* i control-height))) x))
                                       settings)))
-  
-  #| (: handles (DynListOf Vector2D))
-  (define handles (dynlist-lambda (Vector2D) (body-get body)
-                                  (i v) (body-set! body i v))) |#
 
   (gui-handles render handles controls in-view-mode? width height title))
 
-(define test-vec (vec 30 30))
-(define slider-value (box (ann 0 Real)))
-(define option-value (box (ann #f Boolean)))
-(gui-controls (dynlist-lambda (Vector2D) (list (if (unbox option-value)
-                                                   (v+ test-vec (vec (unbox slider-value) 0))
-                                                   test-vec))
-                              (i v) (if (unbox option-value)
-                                        (set! test-vec (v- v (vec (unbox slider-value) 0)))
-                                        (set! test-vec v)))
-              (list->mutlist (list (setting-slider "Test Slider" -30 30 slider-value)
-                                   (setting-option "Test Option" option-value)))
-              (lambda (w h) (r:line test-vec (vec (/ w 2) (/ h 2))))
-              (list (button (lambda () (displayln "HELLO WORLD")) "red"))
-              600 600 "Test of gui-controls")
-
-#|
-  (: save-rendering ButtonFunc)
-  (define (save-rendering x y w h)
-    (displayln "Saving image...")
-    (let ((path (put-file "Choose where to save a snapshot" #f #f "scribble.png"
-                          ".png" empty (list (list "PNG Images" "*.png") (list "Any" "*.*")))))
-      (when path
-        (r:save-to (render-scene w h) w h (path->string path)))))|#
-
-  #|(: save-project ButtonPressFunc)
-  (define (save-project w h)
-    (unless (or (= w 0) (= h 0))
-      (displayln "Saving project...")
-      (let ((path (put-file "Choose where to save your project" #f #f "scribble.scribble"
-                            ".scribble" empty (list (list "Scribbles Projects" "*.scribble") (list "Any" "*.*")))))
-        (when path
-          (save-to (body-save body) (path->string path))))))|#
+(when #f
+  (define test-vec (vec 30 30))
+  (define slider-value (box (ann 0 Real)))
+  (define option-value (box (ann #f Boolean)))
+  (gui-controls (dynlist-lambda (Vector2D) (list (if (unbox option-value)
+                                                     (v+ test-vec (vec (unbox slider-value) 0))
+                                                     test-vec))
+                                (i v) (if (unbox option-value)
+                                          (set! test-vec (v- v (vec (unbox slider-value) 0)))
+                                          (set! test-vec v)))
+                (list->mutlist (list (setting-slider "Test Slider" -30 30 slider-value)
+                                     (setting-option "Test Option" option-value)))
+                (lambda (w h) (r:line test-vec (vec (/ w 2) (/ h 2))))
+                (list (button (lambda () (displayln "HELLO WORLD")) "red"))
+                600 600 "Test of gui-controls"))
