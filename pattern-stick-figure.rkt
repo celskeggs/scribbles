@@ -45,4 +45,6 @@
 
 (map line-renderer bones)
 
+(lock-pattern! pat 'stick-figure-basic)
+
 (define new-stick-figure (pattern-constructor pat))

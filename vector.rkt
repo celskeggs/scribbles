@@ -1,12 +1,13 @@
 #lang typed/racket
 (require "utils.rkt")
 
-(provide Vector2D vec vec-x vec-y vunpack v+ v- v*c vlen-sq vlen vdist-sq vdist vin-origin-circle? vin-circle? vin-origin-rectangle? vin-rectangle? vscale vinterpolate)
+(provide Vector2D vec? vec vec-x vec-y vunpack v+ v- v*c vlen-sq vlen vdist-sq vdist vin-origin-circle? vin-circle? vin-origin-rectangle? vin-rectangle? vscale vinterpolate)
 
 (define-type Vector2D vecstr)
 
 (struct vecstr ([x : Real] [y : Real]) #:transparent)
 
+(define vec? vecstr?)
 (define vec-x vecstr-x)
 (define vec-y vecstr-y)
 

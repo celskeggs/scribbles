@@ -1,6 +1,6 @@
 #lang typed/racket
 (require (only-in typed/racket/gui
-                  put-file))
+                  get-file put-file))
 
 (require "utils.rkt")
 (require "vector.rkt")
@@ -8,6 +8,7 @@
 (require "functional-graphics.rkt")
 (require "world.rkt")
 (require "entity.rkt")
+(require "saving.rkt")
 
 (provide editor-main)
 
@@ -42,17 +43,33 @@
       (when path
         (r:save-to (renderer w h) w h (path->string path)))))
 
+  (: save-world ButtonPress)
+  (define (save-world w h)
+    (displayln "Saving project...")
+    (let ((path (put-file "Choose where to save your project" #f #f "scribble.scp"
+                          ".scp" empty (list (list "Scribble Projects" "*.scp") (list "Any" "*.*")))))
+      (when path
+        (save-to (world-save world) (path->string path)))))
+
+  (: load-world ButtonPress)
+  (define (load-world w h)
+    (displayln "Loading project...")
+    (let ((path (get-file "Select your project" #f #f #f
+                          ".scp" empty (list (list "Scribble Projects" "*.scp") (list "Any" "*.*")))))
+      (when path
+        (world-load! world (load-from (path->string path))))))
+
   (: remove-entity ButtonPress)
   (define (remove-entity w h)
     (unless (world-delete-selected world)
       (displayln "Nothing selected!")))
-
-  (print (list "GOT" ((world->settings world))))
   
   (gui-controls (world->handles world) (world->settings world) renderer
                 (list (button save-rendering "orange")
                       (button add-entity "green")
-                      (button remove-entity "red"))
+                      (button remove-entity "red")
+                      (button save-world "cyan")
+                      (button load-world "black"))
                 width height title))
 
 (: editor-main (->* ((-> Positive-Integer Positive-Integer Entity)) (Positive-Integer Positive-Integer) Void))

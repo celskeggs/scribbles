@@ -3,10 +3,12 @@
 (require "entity.rkt")
 (require "vector.rkt")
 (require "functional-graphics.rkt")
+(require "saving.rkt")
 
 (provide World world-new
          world->mutlist world->handles world-selected world-entities world-selected-entity
-         world-add world-delete-selected)
+         world-add world-delete-selected
+         world-save world-load!)
 
 (define-type World world)
 (struct world ([entities : (Listof Entity)] [selected : (U #f Nonnegative-Integer)]) #:mutable)
@@ -33,7 +35,7 @@
 (: world-selected-entity (-> World (U #f Entity)))
 (define (world-selected-entity world)
   (let ((selected (world-selected world)))
-    (and selected (list-ref (world-entities world) selected))))
+    (and selected (< selected (length (world-entities world))) (list-ref (world-entities world) selected))))
 
 (: world-add (-> World Entity Void))
 (define (world-add world ent)
@@ -46,3 +48,13 @@
          (begin
            (set-world-entities! world (without-i (world-entities world) selected))
            #t))))
+
+(: world-load! (-> World Encoded Void))
+(define (world-load! world enc)
+  (if (list? enc)
+      (set-world-entities! world (map entity-load enc))
+      (error "invalid saved world")))
+
+(: world-save (-> World Encoded))
+(define (world-save world)
+  (map entity-save (world-entities world)))
