@@ -46,6 +46,8 @@
   (define (remove-entity w h)
     (unless (world-delete-selected world)
       (displayln "Nothing selected!")))
+
+  (print (list "GOT" ((world->settings world))))
   
   (gui-controls (world->handles world) (world->settings world) renderer
                 (list (button save-rendering "orange")

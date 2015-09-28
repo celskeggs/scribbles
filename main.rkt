@@ -3,4 +3,4 @@
 (require "editor.rkt")
 
 (editor-main (lambda (w h)
-               (make-stick-figure (/ w 2) (/ h 2))))
+               (new-stick-figure (/ w 2) (/ h 2))))

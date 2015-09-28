@@ -7,7 +7,8 @@
          r:pen r:brush r:style r:wrap-style
          r:all r:circle r:line r:rect r:text r:blank
          r:render-to r:save-to r:contains
-         [rename-out (make-color r:color)])
+         [rename-out (make-color r:color)]
+         rf:compose)
 
 (define-type RendererFunc (-> Nonnegative-Integer Nonnegative-Integer Renderer))
 
@@ -60,7 +61,7 @@
           (send dc draw-line (vec-x v1) (vec-y v1) (vec-x v2) (vec-y v2))
           #f)) ; TODO: allow line collision detection?
 
-(: r:circle (-> Vector2D Positive-Integer Renderer))
+(: r:circle (-> Vector2D Positive-Real Renderer))
 (define (r:circle center rad)
   (genren (dc x y)
           (send dc draw-ellipse (- (vec-x center) rad) (- (vec-y center) rad) (* rad 2) (* rad 2))
@@ -123,3 +124,8 @@
     (r:render-to rf dc)
     (send bmp save-file file kind)
     (void)))
+
+(: rf:compose (-> (Listof RendererFunc) RendererFunc))
+(define ((rf:compose funcs) w h)
+  (apply r:all (for/list : (Listof Renderer) ((func funcs))
+                 (func w h))))

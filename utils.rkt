@@ -1,7 +1,7 @@
 #lang typed/racket
 (provide sq enumerate enumerate-generic list->hash set-union* apply-map2 apply-map apply-each without without-i normalize denormalize
          MutListOf mutlist-map mutlist-enum-map mutlist-append mutlist-append* list->mutlist mutlist-via
-         Mutable mut-set! mut-get mut-make mut-wrap-set)
+         Mutable mut-set! mut-get mut-make mut-wrap-set mut-cell)
 
 ; mutable lists
 
@@ -63,6 +63,13 @@
   (mut-make (mutable-get mut)
             (lambda ([value : E])
               (mut-set! mut (f value)))))
+
+(: mut-cell (All (E) (-> E (Mutable E))))
+(define (mut-cell default)
+  (: value E)
+  (define value default)
+  (mut-make (lambda () value)
+            (lambda ([val : E]) (set! value val))))
 
 ; everything else
 

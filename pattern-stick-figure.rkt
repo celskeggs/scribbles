@@ -1,39 +1,48 @@
 #lang typed/racket
+(require "vector.rkt")
 (require "functional-graphics.rkt")
-(require "segments.rkt")
-(require "body.rkt")
+(require "skeleton.rkt")
+(require "pattern-base.rkt")
 
 (provide new-stick-figure)
 
-(: line-bone (->* (Symbol Symbol Real Real) ((Listof RenderSegment)) Element))
-(define (line-bone variant invariant dx dy [extra-renders empty])
-  (bone variant invariant dx dy (cons 
-                                 (lambda ([lookup : Vector2Ds]) (r:line (lookup variant) (lookup invariant)))
-                                 extra-renders)))
+(define skel (new-skeleton-def 100))
+(define pat (new-pattern-def skel (r:wrap-style "black" 6 'solid "white" 'solid)))
 
-(: line-bone-unpack (-> (List* Symbol Symbol Real Real (Listof RenderSegment)) Element))
-(define (line-bone-unpack l)
-  (line-bone (car l) (cadr l) (caddr l) (cadddr l) (cddddr l)))
+(define head (attach-joint! skel 0 -1))
+(define collar (attach-joint! skel 0 0))
+(define pelvis (attach-joint! skel 0 1))
+(define left-elbow (attach-joint! skel -1 1))
+(define left-hand (attach-joint! skel 0 1))
+(define right-elbow (attach-joint! skel 1 1))
+(define right-hand (attach-joint! skel 0 1))
+(define left-knee (attach-joint! skel -1 1))
+(define left-foot (attach-joint! skel 0 1))
+(define right-knee (attach-joint! skel 1 1))
+(define right-foot (attach-joint! skel 0 1))
 
-(: line-bone-chain-i (-> Symbol (Listof (List* Symbol Real Real (Listof RenderSegment))) (Listof Element)))
-(define (line-bone-chain-i initial rest)
-  (if (empty? rest)
-      empty
-      (cons (line-bone-unpack (list* (caar rest) initial (cdar rest)))
-            (line-bone-chain-i (caar rest) (cdr rest)))))
+(: bones (Listof BoneRef))
+(define bones
+  (list
+   (attach-fixed-bone! skel head collar 0.7)
+   (attach-fixed-bone! skel pelvis collar 1)
+   (attach-fixed-bone! skel left-elbow collar 0.5)
+   (attach-fixed-bone! skel left-hand left-elbow 0.5)
+   (attach-fixed-bone! skel right-elbow collar 0.5)
+   (attach-fixed-bone! skel right-hand right-elbow 0.5)
+   (attach-fixed-bone! skel left-knee pelvis 0.6)
+   (attach-fixed-bone! skel left-foot left-knee 0.6)
+   (attach-fixed-bone! skel right-knee pelvis 0.6)
+   (attach-fixed-bone! skel right-foot right-knee 0.6)))
 
-(: line-bone-chain (-> Symbol (List* Symbol Real Real (Listof RenderSegment)) * (Listof Element)))
-(define (line-bone-chain initial . rest)
-  (line-bone-chain-i initial rest))
+(attach-renderer! pat (lambda ([vecs : (Listof Vector2D)] [scale : Scale])
+                        (r:circle (list-ref vecs head) (scale* scale 0.5))))
 
+(: line-renderer (-> BoneRef Void))
+(define (line-renderer br)
+  (attach-renderer! pat (lambda ([vecs : (Listof Vector2D)] [scale : Scale])
+                          (r:line (list-ref vecs (car br)) (list-ref vecs (cdr br))))))
 
-(: new-stick-figure (-> Real Real Body))
-(define (new-stick-figure x y)
-  (construct
-   (root 'collar x y)
-   (line-bone 'pelvis 'collar 0 100)
-   (line-bone 'head 'collar 0 -70 (list (lambda ([lookup : Vector2Ds]) (r:circle (lookup 'head) 50))))
-   (line-bone-chain 'collar (list 'left-elbow -50 0) (list 'left-hand -50 0))
-   (line-bone-chain 'collar (list 'right-elbow 50 0) (list 'right-hand 50 0))
-   (line-bone-chain 'pelvis (list 'left-knee -42 42) (list 'left-foot 0 60))
-   (line-bone-chain 'pelvis (list 'right-knee 42 42) (list 'right-foot 0 60))))
+(map line-renderer bones)
+
+(define new-stick-figure (pattern-constructor pat))

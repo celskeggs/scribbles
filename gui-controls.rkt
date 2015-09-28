@@ -35,10 +35,10 @@
           (list (lambda (w h) (r:all (r:line line-start line-end)
                                      (r:blank pos slider-width control-height)
                                      (r:circle (vinterpolate line-start line-end
-                                                             (normalize min max (unbox value-box)))
+                                                             (normalize min max (mut-get value-box)))
                                                (exact-ceiling (/ control-height 2)))
                                      (r:text text-pos name)))
-                (lambda (x y w h) (set-box! value-box (denormalize min max
+                (lambda (x y w h) (mut-set! value-box (denormalize min max
                                                                    (normalize (vec-x line-start)
                                                                               (vec-x line-end)
                                                                               x))))
@@ -46,9 +46,9 @@
       (let-values (((name _ value-box) (apply values setting)))
         (define box-size control-height)
         (let ((text-pos (v+ pos (vec (+ box-size 10) 0))))
-          (list (lambda (w h) (r:all (r:brush (if (unbox value-box) "green" "white") 'solid (r:rect pos box-size box-size))
+          (list (lambda (w h) (r:all (r:brush (if (mut-get value-box) "green" "white") 'solid (r:rect pos box-size box-size))
                                      (r:text text-pos name)))
-                (lambda (x y w h) (set-box! value-box (not (unbox value-box))))
+                (lambda (x y w h) (mut-set! value-box (not (mut-get value-box))))
                 void)))))
 
 (: gui-controls (-> (MutListOf (Mutable Vector2D)) (MutListOf Setting) RendererFunc (Listof Button) Positive-Integer Positive-Integer String Void))
@@ -79,15 +79,15 @@
 
 (when #f
   (define test-vec (vec 30 30))
-  (define slider-value (box (ann 0 Real)))
-  (define option-value (box (ann #f Boolean)))
+  (define slider-value (mut-cell (ann 0 Real)))
+  (define option-value (mut-cell (ann #f Boolean)))
   (gui-controls (list->mutlist (list (mut-make (lambda ()
-                                                 (if (unbox option-value)
-                                                     (v+ test-vec (vec (unbox slider-value) 0))
+                                                 (if (mut-get option-value)
+                                                     (v+ test-vec (vec (mut-get slider-value) 0))
                                                      test-vec))
                                                (lambda ([v : Vector2D])
-                                                 (if (unbox option-value)
-                                                     (set! test-vec (v- v (vec (unbox slider-value) 0)))
+                                                 (if (mut-get option-value)
+                                                     (set! test-vec (v- v (vec (mut-get slider-value) 0)))
                                                      (set! test-vec v))))))
                 (list->mutlist (list (setting-slider "Test Slider" -30 30 slider-value)
                                      (setting-option "Test Option" option-value)))
