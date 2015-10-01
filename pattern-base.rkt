@@ -8,12 +8,12 @@
 
 (provide PatternDef RendererSnippet
          new-pattern-def
-         attach-renderer! attach-line! attach-poly!
+         attach-renderer! attach-line! attach-poly! attach-circle!
          lock-pattern! pattern-load
          new-pattern pattern-constructor)
 
 (define-type PatternDef pattern-def)
-(define-type RendererSnippet (-> (Listof Vector2D) Scale Renderer))
+(define-type RendererSnippet (-> Skeleton Renderer))
 
 (struct pattern-def ([skeleton : SkeletonDef]
                      [style : Style]
@@ -32,14 +32,20 @@
 
 (: attach-line! (->* (PatternDef BoneRef) (Style) Void))
 (define (attach-line! pat br [style r:all])
-  (attach-renderer! pat (lambda ([vecs : (Listof Vector2D)] [scale : Scale])
-                          (style (r:line (joint-v-ref scale vecs (car br)) (joint-v-ref scale vecs (cdr br)))))))
+  (attach-renderer! pat (lambda (sk)
+                          (style (r:line (joint-ref sk (car br)) (joint-ref sk (cdr br)))))))
 
 (: attach-poly! (->* (PatternDef (Listof JointRef)) (Style) Void))
 (define (attach-poly! pat joints [style r:all])
-  (attach-renderer! pat (lambda ([vecs : (Listof Vector2D)] [scale : Scale])
+  (attach-renderer! pat (lambda (sk)
                           (style (r:poly (for/list ((joint joints))
-                                           (joint-v-ref scale vecs joint)))))))
+                                           (joint-ref sk joint)))))))
+
+(: attach-circle! (->* (PatternDef JointRef Scale) (Style) Void))
+(define (attach-circle! pat center size [style r:all])
+  (attach-renderer! pat (lambda (sk)
+                          (style (r:circle (joint-ref sk center)
+                                           (scale* sk size))))))
 
 (define-predicate valid-enc-skel? EncodedSkeleton)
 
@@ -68,8 +74,7 @@
               (update-skeleton skel)
               (apply (pattern-def-style def)
                      (for/list : (Listof Renderer) ((rend : RendererSnippet (reverse (pattern-def-rev-renderer-snippets def))))
-                       (rend (map (inst mut-get Vector2D) (skeleton-joints skel))
-                             (mut-get (skeleton-scale skel))))))
+                       (rend skel))))
           (lambda ()
             (list name
                   (skeleton-save skel)))))

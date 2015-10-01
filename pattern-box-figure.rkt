@@ -47,8 +47,7 @@
 
 (attach-poly! pat (list left-shoulder left-hip right-hip right-shoulder) body-style)
 
-(attach-renderer! pat (lambda ([vecs : (Listof Vector2D)] [scale : Scale])
-                        (r:circle (list-ref vecs head) (scale* scale 0.7))))
+(attach-circle! pat head 0.7)
 
 (map (curry attach-line! pat) bones)
 
