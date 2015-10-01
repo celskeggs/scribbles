@@ -5,7 +5,9 @@
 
 (provide Renderer Style Color RendererFunc
          r:pen r:brush r:style r:wrap-style
-         r:all r:circle r:line r:rect r:text r:blank
+         r:all
+         r:circle r:line r:rect r:poly
+         r:text r:blank
          r:render-to r:save-to r:contains
          [rename-out (make-color r:color)]
          rf:compose)
@@ -72,6 +74,12 @@
   (genren (dc x y)
           (send dc draw-rectangle (vec-x pos) (vec-y pos) width height)
           (vin-rectangle? (vec x y) pos (vec width height))))
+
+(: r:poly (-> (Listof Vector2D) Renderer))
+(define (r:poly points)
+  (genren (dc x y)
+          (send dc draw-polygon (map vec->pair points))
+          #f)) ; TODO: allow polygon collision detection?
 
 (: r:blank (-> Vector2D Positive-Real Positive-Real Renderer))
 (define (r:blank pos width height)

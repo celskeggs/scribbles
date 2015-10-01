@@ -7,7 +7,8 @@
 (require "saving.rkt")
 
 (provide PatternDef RendererSnippet
-         new-pattern-def attach-renderer!
+         new-pattern-def
+         attach-renderer! attach-line! attach-poly!
          lock-pattern! pattern-load
          new-pattern pattern-constructor)
 
@@ -28,6 +29,17 @@
   (when (pattern-def-locked-name pat)
     (error "pattern is locked!"))
   (set-pattern-def-rev-renderer-snippets! pat (cons render (pattern-def-rev-renderer-snippets pat))))
+
+(: attach-line! (->* (PatternDef BoneRef) (Style) Void))
+(define (attach-line! pat br [style r:all])
+  (attach-renderer! pat (lambda ([vecs : (Listof Vector2D)] [scale : Scale])
+                          (style (r:line (joint-v-ref scale vecs (car br)) (joint-v-ref scale vecs (cdr br)))))))
+
+(: attach-poly! (->* (PatternDef (Listof JointRef)) (Style) Void))
+(define (attach-poly! pat joints [style r:all])
+  (attach-renderer! pat (lambda ([vecs : (Listof Vector2D)] [scale : Scale])
+                          (style (r:poly (for/list ((joint joints))
+                                           (joint-v-ref scale vecs joint)))))))
 
 (define-predicate valid-enc-skel? EncodedSkeleton)
 

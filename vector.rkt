@@ -1,7 +1,7 @@
 #lang typed/racket
 (require "utils.rkt")
 
-(provide Vector2D vec? vec vec-x vec-y vunpack
+(provide Vector2D vec? vec vec-x vec-y vunpack vec->pair
          v+ v- v*c
          vlen-sq vlen vdist-sq vdist
          vin-origin-circle? vin-circle? vin-origin-rectangle? vin-rectangle?
@@ -21,6 +21,10 @@
 (: vunpack (-> Vector2D (values Real Real)))
 (define (vunpack v)
   (values (vec-x v) (vec-y v)))
+
+(: vec->pair (-> Vector2D (Pairof Real Real)))
+(define (vec->pair v)
+  (cons (vec-x v) (vec-y v)))
 
 (: v+ (-> Vector2D Vector2D Vector2D))
 (define (v+ v1 v2)
