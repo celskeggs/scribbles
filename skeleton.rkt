@@ -17,7 +17,7 @@
 (define-type SkeletonDef skeleton-def)
 (define-type Skeleton skeleton)
 (define-type RealJointRef Nonnegative-Integer)
-(define-type DerivedJointRef (-> Scale (-> JointRef Vector2D) Vector2D))
+(define-type DerivedJointRef (-> Skeleton Vector2D))
 (define-type JointRef (U RealJointRef DerivedJointRef))
 (define-type BoneRef (Pairof JointRef JointRef))
 (define-type Scale Positive-Real)
@@ -66,21 +66,9 @@
 
 (: joint-ref (-> Skeleton JointRef Vector2D))
 (define (joint-ref skel joint)
-  (joint-vm-ref (mut-get (skeleton-scale skel)) (skeleton-joints skel) joint))
-
-#|(: joint-v-ref (-> Scale (Listof Vector2D) JointRef Vector2D))
-(define (joint-v-ref scale skel joint)
-  (let iter ((joint joint))
-    (if (procedure? joint)
-        (joint scale iter)
-        (list-ref skel joint))))|#
-
-(: joint-vm-ref (-> Scale (Listof (Mutable Vector2D)) JointRef Vector2D))
-(define (joint-vm-ref scale skel joint)
-  (let iter ((joint joint))
-    (if (procedure? joint)
-        (joint scale iter)
-        (mut-get (list-ref skel joint)))))
+  (if (procedure? joint)
+      (joint skel)
+      (mut-get (list-ref (skeleton-joints skel) joint))))
 
 (: merge-constraints (-> (Listof Constraint) Constraint))
 (define ((merge-constraints constraints) sk)
@@ -96,8 +84,9 @@
   new-joint-id)
 
 (define-syntax-rule (dynamic-joint scale (base ...) proc)
-  (lambda ([scale : Scale] [lookup : (-> JointRef Vector2D)])
-    (let ((base (lookup (ann base JointRef))) ...)
+  (lambda ([skel : Skeleton])
+    (let ((scale (mut-get (skeleton-scale skel)))
+          (base (joint-ref skel (ann base JointRef))) ...)
       (ann proc Vector2D))))
 
 (: assert-valid-joint (-> SkeletonDef JointRef Void))
