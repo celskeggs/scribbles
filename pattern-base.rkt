@@ -16,7 +16,7 @@
 
 (struct pattern-def ([skeleton : SkeletonDef]
                      [style : Style]
-                     [renderer-snippets : (Listof RendererSnippet)]
+                     [rev-renderer-snippets : (Listof RendererSnippet)]
                      [locked-name : (U #f Symbol)]) #:mutable)
 
 (: new-pattern-def (-> SkeletonDef Style PatternDef))
@@ -27,7 +27,7 @@
 (define (attach-renderer! pat render)
   (when (pattern-def-locked-name pat)
     (error "pattern is locked!"))
-  (set-pattern-def-renderer-snippets! pat (cons render (pattern-def-renderer-snippets pat))))
+  (set-pattern-def-rev-renderer-snippets! pat (cons render (pattern-def-rev-renderer-snippets pat))))
 
 (define-predicate valid-enc-skel? EncodedSkeleton)
 
@@ -55,7 +55,7 @@
           (lambda (w h)
               (update-skeleton skel)
               (apply (pattern-def-style def)
-                     (for/list : (Listof Renderer) ((rend : RendererSnippet (pattern-def-renderer-snippets def)))
+                     (for/list : (Listof Renderer) ((rend : RendererSnippet (reverse (pattern-def-rev-renderer-snippets def))))
                        (rend (map (inst mut-get Vector2D) (skeleton-joints skel))
                              (mut-get (skeleton-scale skel))))))
           (lambda ()

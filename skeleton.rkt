@@ -3,17 +3,23 @@
 (require "vector.rkt")
 (require "saving.rkt")
 
-(provide SkeletonDef Skeleton JointRef BoneRef Scale Constraint SimpleConstraint
+(provide SkeletonDef Skeleton
+         JointRef RealJointRef DerivedJointRef BoneRef
+         Scale
+         Constraint SimpleConstraint
          EncodedSkeleton
          new-skeleton-def attach-joint! attach-constraint! attach-simple-constraint! attach-fixed-bone!
+         joint-ref joint-v-ref joint-vm-ref dynamic-joint
          new-skeleton update-skeleton skeleton-joints skeleton-scale
          skeleton-load skeleton-save skeleton-lock!
          scale*)
 
 (define-type SkeletonDef skeleton-def)
 (define-type Skeleton skeleton)
-(define-type JointRef Nonnegative-Integer)
-(define-type BoneRef (Pairof Nonnegative-Integer Nonnegative-Integer))
+(define-type RealJointRef Nonnegative-Integer)
+(define-type DerivedJointRef (-> Scale (-> JointRef Vector2D) Vector2D))
+(define-type JointRef (U RealJointRef DerivedJointRef))
+(define-type BoneRef (Pairof JointRef JointRef))
 (define-type Scale Positive-Real)
 (define-type Constraint (-> Scale (Listof (Mutable Vector2D)) Void))
 (define-type SimpleConstraint (-> Scale Vector2D (Listof Vector2D) Vector2D))
@@ -55,12 +61,30 @@
   (list (map (inst mut-get Vector2D) (skeleton-joints skel))
         (mut-get (skeleton-scale skel))))
 
+(: joint-ref (-> Skeleton JointRef Vector2D))
+(define (joint-ref skel joint)
+  (joint-vm-ref (mut-get (skeleton-scale skel)) (skeleton-joints skel) joint))
+
+(: joint-v-ref (-> Scale (Listof Vector2D) JointRef Vector2D))
+(define (joint-v-ref scale skel joint)
+  (let iter ((joint joint))
+    (if (procedure? joint)
+        (joint scale iter)
+        (list-ref skel joint))))
+
+(: joint-vm-ref (-> Scale (Listof (Mutable Vector2D)) JointRef Vector2D))
+(define (joint-vm-ref scale skel joint)
+  (let iter ((joint joint))
+    (if (procedure? joint)
+        (joint scale iter)
+        (mut-get (list-ref skel joint)))))
+
 (: merge-constraints (-> (Listof Constraint) Constraint))
 (define ((merge-constraints constraints) scale vecs)
   (for ((constraint constraints))
     (constraint scale vecs)))
 
-(: attach-joint! (-> SkeletonDef Real Real JointRef))
+(: attach-joint! (-> SkeletonDef Real Real RealJointRef))
 (define (attach-joint! skel dx dy)
   (when (skeleton-def-locked skel)
     (error "skeleton is locked!"))
@@ -68,9 +92,14 @@
   (set-skeleton-def-rev-joint-inits! skel (cons (vec dx dy) (skeleton-def-rev-joint-inits skel)))
   new-joint-id)
 
+(define-syntax-rule (dynamic-joint scale (base ...) proc)
+  (lambda ([scale : Scale] [lookup : (-> JointRef Vector2D)])
+    (let ((base (lookup (ann base JointRef))) ...)
+      (ann proc Vector2D))))
+
 (: assert-valid-joint (-> SkeletonDef JointRef Void))
 (define (assert-valid-joint skel joint)
-  (unless (< joint (length (skeleton-def-rev-joint-inits skel)))
+  (unless (or (procedure? joint) (< joint (length (skeleton-def-rev-joint-inits skel))))
     (error "Joint is not yet defined: " joint)))
 
 (: attach-constraint! (-> SkeletonDef Constraint Void))
@@ -79,7 +108,7 @@
     (error "skeleton is locked!"))
   (set-skeleton-def-rev-constraints! skel (cons const (skeleton-def-rev-constraints skel))))
 
-(: attach-simple-constraint! (-> SkeletonDef JointRef SimpleConstraint Void))
+(: attach-simple-constraint! (-> SkeletonDef RealJointRef SimpleConstraint Void))
 (define (attach-simple-constraint! skel joint constraint)
   (assert-valid-joint skel joint)
   (attach-constraint! skel
@@ -91,12 +120,12 @@
 (define (fixed-distance variant invariant distance)
   (v+ invariant (vscale (v- variant invariant) distance)))
 
-(: attach-fixed-bone! (-> SkeletonDef JointRef JointRef Scale BoneRef))
+(: attach-fixed-bone! (-> SkeletonDef RealJointRef JointRef Scale BoneRef))
 (define (attach-fixed-bone! skel variable invariable scale-multiplier)
   (assert-valid-joint skel invariable)
   (attach-simple-constraint! skel variable
                              (lambda ([scale : Scale] [var : Vector2D] [joints : (Listof Vector2D)])
-                               (fixed-distance var (list-ref joints invariable) (scale* scale scale-multiplier))))
+                               (fixed-distance var (joint-v-ref scale joints invariable) (scale* scale scale-multiplier))))
   (cons variable invariable))
 
 (: new-skeleton (-> SkeletonDef Real Real Skeleton))

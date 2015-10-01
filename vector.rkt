@@ -1,7 +1,11 @@
 #lang typed/racket
 (require "utils.rkt")
 
-(provide Vector2D vec? vec vec-x vec-y vunpack v+ v- v*c vlen-sq vlen vdist-sq vdist vin-origin-circle? vin-circle? vin-origin-rectangle? vin-rectangle? vscale vinterpolate)
+(provide Vector2D vec? vec vec-x vec-y vunpack
+         v+ v- v*c
+         vlen-sq vlen vdist-sq vdist
+         vin-origin-circle? vin-circle? vin-origin-rectangle? vin-rectangle?
+         vscale vinterpolate vrotate-origin-rad vrotate-origin-deg vrotate-rad vrotate-deg)
 
 (define-type Vector2D vecstr)
 
@@ -76,3 +80,22 @@
                    ((> r 1) 1)
                    (else r)))
   (v+ (v*c one rn) (v*c zero (- 1 rn))))
+
+(: vrotate-origin-rad (-> Vector2D Real Vector2D))
+(define (vrotate-origin-rad v rad)
+  (let-values (((x y) (vunpack v)))
+    (let ((c (cos rad)) (s (sin rad)))
+      (vec (- (* x c) (* y s))
+           (+ (* x s) (* y c))))))
+
+(: vrotate-origin-deg (-> Vector2D Real Vector2D))
+(define (vrotate-origin-deg v deg)
+  (vrotate-origin-rad v (degrees->radians deg)))
+
+(: vrotate-rad (-> Vector2D Vector2D Real Vector2D))
+(define (vrotate-rad original around radians)
+  (v+ around (vrotate-origin-rad (v- original around) radians)))
+
+(: vrotate-deg (-> Vector2D Vector2D Real Vector2D))
+(define (vrotate-deg original around degrees)
+  (vrotate-rad original around (degrees->radians degrees)))

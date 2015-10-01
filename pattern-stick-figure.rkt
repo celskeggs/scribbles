@@ -36,12 +36,12 @@
    (attach-fixed-bone! skel right-foot right-knee 0.6)))
 
 (attach-renderer! pat (lambda ([vecs : (Listof Vector2D)] [scale : Scale])
-                        (r:circle (list-ref vecs head) (scale* scale 0.5))))
+                        (r:circle (joint-v-ref scale vecs head) (scale* scale 0.5))))
 
 (: line-renderer (-> BoneRef Void))
 (define (line-renderer br)
   (attach-renderer! pat (lambda ([vecs : (Listof Vector2D)] [scale : Scale])
-                          (r:line (list-ref vecs (car br)) (list-ref vecs (cdr br))))))
+                          (r:line (joint-v-ref scale vecs (car br)) (joint-v-ref scale vecs (cdr br))))))
 
 (map line-renderer bones)
 
