@@ -8,9 +8,9 @@
          Scale
          Constraint SimpleConstraint
          EncodedSkeleton
-         new-skeleton-def attach-joint! attach-constraint! attach-simple-constraint! attach-fixed-bone!
+         new-skeleton-def attach-joint! attach-joint-rel! attach-constraint! attach-simple-constraint! attach-fixed-bone!
          joint-ref dynamic-joint
-         new-skeleton update-skeleton skeleton-joints skeleton-scale
+         new-skeleton update-skeleton skeleton-handles skeleton-scale
          skeleton-load skeleton-save skeleton-lock!
          scale*)
 
@@ -23,12 +23,15 @@
 (define-type Scale Positive-Real)
 (define-type Constraint (-> Skeleton Void))
 (define-type SimpleConstraint (-> Vector2D Skeleton Vector2D))
+(define-type HandleTX (-> (Mutable Vector2D) Skeleton (Mutable Vector2D)))
 
-(struct skeleton-def ([rev-joint-inits : (Listof Vector2D)]
+(struct skeleton-def ([rev-joint-inits : (Listof (Pairof Vector2D HandleTX))]
                       [default-scale : Scale]
                       [rev-constraints : (Listof Constraint)]
                       [locked : Boolean]) #:mutable)
-(struct skeleton ([joints : (Listof (Mutable Vector2D))] [scale : (Mutable Scale)] [constraints : Constraint]))
+(struct skeleton ([vecs : (Listof (Mutable Vector2D))]
+                  [scale : (Mutable Scale)]
+                  [sdef : SkeletonDef]))
 
 (: scale* (-> (U Scale Skeleton) Scale Scale))
 (define (scale* a b)
@@ -48,40 +51,46 @@
 
 (define-type EncodedSkeleton (List (Listof Vector2D) Scale))
 
-(: skeleton-load (-> SkeletonDef EncodedSkeleton Skeleton))
-(define (skeleton-load def enc)
-  (unless (skeleton-def-locked def)
-    (error "skeleton is not locked!"))
-  (let* ((joints (map (inst mut-cell Vector2D) (first enc)))
-         (constraints (merge-constraints (reverse (skeleton-def-rev-constraints def))))
-         (scale ((inst mut-cell Scale) (second enc)))
-         (skel (skeleton joints scale constraints)))
-    (constraints skel)
-    skel))
-
 (: skeleton-save (-> Skeleton EncodedSkeleton))
 (define (skeleton-save skel)
-  (list (map (inst mut-get Vector2D) (skeleton-joints skel))
+  (list (map (inst mut-get Vector2D) (skeleton-vecs skel))
         (mut-get (skeleton-scale skel))))
 
 (: joint-ref (-> Skeleton JointRef Vector2D))
 (define (joint-ref skel joint)
   (if (procedure? joint)
       (joint skel)
-      (mut-get (list-ref (skeleton-joints skel) joint))))
+      (mut-get (skeleton-handle-ref skel joint))))
 
-(: merge-constraints (-> (Listof Constraint) Constraint))
-(define ((merge-constraints constraints) sk)
-  (apply-map constraints sk)
-  (void))
+(: base-htx HandleTX)
+(define (base-htx v sk)
+  v)
 
-(: attach-joint! (-> SkeletonDef Real Real RealJointRef))
-(define (attach-joint! skel dx dy)
+(: attach-joint! (->* (SkeletonDef Real Real) (HandleTX) RealJointRef))
+(define (attach-joint! skel dx dy [htx base-htx])
   (when (skeleton-def-locked skel)
     (error "skeleton is locked!"))
   (define new-joint-id (length (skeleton-def-rev-joint-inits skel)))
-  (set-skeleton-def-rev-joint-inits! skel (cons (vec dx dy) (skeleton-def-rev-joint-inits skel)))
+  (set-skeleton-def-rev-joint-inits! skel (cons (cons (vec dx dy) htx)
+                                                (skeleton-def-rev-joint-inits skel)))
   new-joint-id)
+
+(: skeleton-handles (-> Skeleton (Listof (Mutable Vector2D))))
+(define (skeleton-handles skel)
+  (for/list ((vec (skeleton-vecs skel)) (init (reverse (skeleton-def-rev-joint-inits (skeleton-sdef skel)))))
+    ((cdr init) vec skel)))
+
+(: skeleton-handle-ref (-> Skeleton Nonnegative-Integer (Mutable Vector2D)))
+(define (skeleton-handle-ref skel i)
+  (let ((vec (list-ref (skeleton-vecs skel) i)) (init (list-ref (reverse (skeleton-def-rev-joint-inits (skeleton-sdef skel))) i)))
+    ((cdr init) vec skel)))
+
+(: attach-joint-rel! (-> SkeletonDef Real Real JointRef RealJointRef))
+(define (attach-joint-rel! skel dx dy base-joint)
+  (attach-joint! skel dx dy (lambda ([base : (Mutable Vector2D)] [skel : Skeleton])
+                              (mut-make (lambda () (v+ (joint-ref skel base-joint) (mut-get base)))
+                                        (lambda ([v : Vector2D])
+                                          (mut-set! base (v- v (joint-ref skel base-joint))))))))
 
 (define-syntax-rule (dynamic-joint scale (base ...) proc)
   (lambda ([skel : Skeleton])
@@ -105,7 +114,7 @@
   (assert-valid-joint skel joint)
   (attach-constraint! skel
                       (lambda ([sk : Skeleton])
-                        (mut-set! (list-ref (skeleton-joints sk) joint)
+                        (mut-set! (skeleton-handle-ref sk joint)
                                   (constraint (joint-ref sk joint) sk)))))
 
 (: fixed-distance (-> Vector2D Vector2D Scale Vector2D))
@@ -121,18 +130,31 @@
   (cons variable invariable))
 
 (: new-skeleton (-> SkeletonDef Real Real Skeleton))
-(define (new-skeleton skel x y)
-  (unless (skeleton-def-locked skel)
+(define (new-skeleton def x y)
+  (unless (skeleton-def-locked def)
     (error "skeleton is not locked!"))
-  (let* ((joints (for/list : (Listof (Mutable Vector2D))
-                   ((def-xy (reverse (skeleton-def-rev-joint-inits skel))))
-                   (mut-cell (v+ def-xy (vec x y)))))
-         (constraints (merge-constraints (reverse (skeleton-def-rev-constraints skel))))
-         (scale ((inst mut-cell Scale) (skeleton-def-default-scale skel)))
-         (sk (skeleton joints scale constraints)))
-    (constraints sk)
+  (let* ((joint-inits (reverse (skeleton-def-rev-joint-inits def)))
+         (vecs (many/list : (Mutable Vector2D) (length joint-inits)
+                          (mut-cell (vec 0 0))))
+         (scale ((inst mut-cell Scale) (skeleton-def-default-scale def)))
+         (sk (skeleton vecs scale def)))
+    (for ((prx joint-inits) (handle (skeleton-handles sk)))
+      (mut-set! handle (v+ (vec x y) (car prx))))
+    (update-skeleton sk)
     sk))
+
+(: skeleton-load (-> SkeletonDef EncodedSkeleton Skeleton))
+(define (skeleton-load def enc)
+  (unless (skeleton-def-locked def)
+    (error "skeleton is not locked!"))
+  (let* ((joint-inits (reverse (skeleton-def-rev-joint-inits def)))
+         (vecs (map (inst mut-cell Vector2D) (first enc)))
+         (scale ((inst mut-cell Scale) (second enc)))
+         (skel (skeleton vecs scale def)))
+    (update-skeleton skel)
+    skel))
 
 (: update-skeleton (-> Skeleton Void))
 (define (update-skeleton skel)
-  ((skeleton-constraints skel) skel))
+  (apply-map (reverse (skeleton-def-rev-constraints (skeleton-sdef skel))) skel)
+  (void))

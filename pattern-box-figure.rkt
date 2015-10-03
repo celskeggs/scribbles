@@ -10,8 +10,8 @@
 (define body-style (r:wrap-style "black" 6 'solid (r:color 0 128 0) 'solid))
 (define pat (new-pattern-def skel (r:wrap-style "black" 6 'solid "white" 'solid)))
 
-(define head (attach-joint! skel 0 -100))
 (define neck (attach-joint! skel 0 -50))
+(define head (attach-joint-rel! skel 0 -100 neck))
 (define pelvis (dynamic-joint scale (head neck)
                               (v+ neck (vscale (v- neck head) scale))))
 (define left-shoulder (dynamic-joint scale (head neck)
@@ -26,12 +26,12 @@
 (define right-hip (dynamic-joint scale (neck pelvis)
                                  (v+ pelvis (vscale (vrotate-origin-deg (v- neck pelvis) 90)
                                                    (* scale 0.5)))))
-(define left-elbow (attach-joint! skel -100 100))
-(define left-hand (attach-joint! skel -150 150))
-(define right-elbow (attach-joint! skel 100 100))
-(define right-hand (attach-joint! skel 150 150))
-(define left-foot (attach-joint! skel -50 300))
-(define right-foot (attach-joint! skel 50 300))
+(define left-elbow (attach-joint-rel! skel -100 100 neck))
+(define left-hand (attach-joint-rel! skel -150 150 neck))
+(define right-elbow (attach-joint-rel! skel 100 100 neck))
+(define right-hand (attach-joint-rel! skel 150 150 neck))
+(define left-foot (attach-joint-rel! skel -50 300 neck))
+(define right-foot (attach-joint-rel! skel 50 300 neck))
 
 (attach-fixed-bone! skel head neck 0.5)
 
@@ -49,7 +49,7 @@
 
 (attach-circle! pat head 0.7)
 
-(map (curry attach-line! pat) bones)
+(void (map (curry attach-line! pat) bones))
 
 (lock-pattern! pat 'box-figure-basic)
 

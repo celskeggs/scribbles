@@ -68,7 +68,7 @@
   (define name (pattern-def-locked-name def))
   (unless name
     (error "pattern is not locked!"))
-  (entity (list->mutlist (skeleton-joints skel))
+  (entity (list->mutlist (skeleton-handles skel))
           (list (setting-positive-slider "Scale" 1 200 (skeleton-scale skel)))
           (lambda (w h)
               (update-skeleton skel)

@@ -1,5 +1,5 @@
 #lang typed/racket
-(provide sq enumerate enumerate-generic list->hash set-union* apply-map2 apply-map apply-each without without-i normalize denormalize
+(provide sq enumerate enumerate-generic list->hash set-union* apply-map2 apply-map apply-each without without-i normalize denormalize many/list
          MutListOf mutlist-map mutlist-enum-map mutlist-append mutlist-append* list->mutlist mutlist-via
          Mutable mut-set! mut-get mut-make mut-wrap-set mut-cell)
 
@@ -137,3 +137,9 @@
 (: denormalize (-> Real Real Real Real))
 (define (denormalize min max value) ; convert from [0, 1] range.
   (+ min (* value (- max min))))
+
+(define-syntax many/list
+  (syntax-rules (:)
+    [(many/list : Type count body)
+     (for/list : (Listof Type) ((_ (range 0 count)))
+       body)]))
