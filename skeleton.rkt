@@ -1,6 +1,7 @@
 #lang typed/racket
 (require "utils.rkt")
 (require "vector.rkt")
+(require "geometry.rkt")
 (require "saving.rkt")
 
 (provide SkeletonDef Skeleton
@@ -8,7 +9,8 @@
          Scale
          Constraint SimpleConstraint
          EncodedSkeleton
-         new-skeleton-def attach-joint! attach-joint-rel! attach-constraint! attach-simple-constraint! attach-fixed-bone!
+         new-skeleton-def attach-joint! attach-joint-rel!
+         attach-constraint! attach-simple-constraint! attach-simple-bone! attach-fixed-bone! attach-limited-bone!
          joint-ref dynamic-joint
          new-skeleton update-skeleton skeleton-handles skeleton-scale
          skeleton-load skeleton-save skeleton-lock!
@@ -117,17 +119,21 @@
                         (mut-set! (skeleton-handle-ref sk joint)
                                   (constraint (joint-ref sk joint) sk)))))
 
-(: fixed-distance (-> Vector2D Vector2D Scale Vector2D))
-(define (fixed-distance variant invariant distance)
-  (v+ invariant (vscale (v- variant invariant) distance)))
+(: attach-simple-bone! (-> SkeletonDef RealJointRef JointRef Scale (-> Vector2D Vector2D Scale Vector2D) BoneRef))
+(define (attach-simple-bone! skel variable invariable scale-multiplier processor)
+  (assert-valid-joint skel invariable)
+  (attach-simple-constraint! skel variable
+                             (lambda (var sk)
+                               (processor var (joint-ref sk invariable) (scale* sk scale-multiplier))))
+  (cons variable invariable))
 
 (: attach-fixed-bone! (-> SkeletonDef RealJointRef JointRef Scale BoneRef))
 (define (attach-fixed-bone! skel variable invariable scale-multiplier)
-  (assert-valid-joint skel invariable)
-  (attach-simple-constraint! skel variable
-                             (lambda ([var : Vector2D] [sk : Skeleton])
-                               (fixed-distance var (joint-ref sk invariable) (scale* sk scale-multiplier))))
-  (cons variable invariable))
+  (attach-simple-bone! skel variable invariable scale-multiplier fixed-distance))
+
+(: attach-limited-bone! (-> SkeletonDef RealJointRef JointRef Scale BoneRef))
+(define (attach-limited-bone! skel variable invariable scale-multiplier)
+  (attach-simple-bone! skel variable invariable scale-multiplier maximum-distance))
 
 (: new-skeleton (-> SkeletonDef Real Real Skeleton))
 (define (new-skeleton def x y)

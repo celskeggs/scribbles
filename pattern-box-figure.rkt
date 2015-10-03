@@ -1,5 +1,6 @@
 #lang typed/racket
 (require "vector.rkt")
+(require "geometry.rkt")
 (require "functional-graphics.rkt")
 (require "skeleton.rkt")
 (require "pattern-base.rkt")
@@ -26,30 +27,33 @@
 (define right-hip (dynamic-joint scale (neck pelvis)
                                  (v+ pelvis (vscale (vrotate-origin-deg (v- neck pelvis) 90)
                                                    (* scale 0.5)))))
-(define left-elbow (attach-joint-rel! skel -100 100 neck))
 (define left-hand (attach-joint-rel! skel -150 150 neck))
-(define right-elbow (attach-joint-rel! skel 100 100 neck))
+(define left-elbow (dynamic-joint scale (left-shoulder left-hand)
+                                  (hypot-known-legs left-shoulder left-hand (* scale -0.4))))
 (define right-hand (attach-joint-rel! skel 150 150 neck))
+(define right-elbow (dynamic-joint scale (right-shoulder right-hand)
+                                   (hypot-known-legs right-shoulder right-hand (* scale 0.4))))
 (define left-foot (attach-joint-rel! skel -50 300 neck))
 (define right-foot (attach-joint-rel! skel 50 300 neck))
 
 (attach-fixed-bone! skel head neck 0.5)
 
-(: bones (Listof BoneRef))
-(define bones
-  (list
-   (attach-fixed-bone! skel left-elbow left-shoulder 0.4)
-   (attach-fixed-bone! skel left-hand left-elbow 0.4)
-   (attach-fixed-bone! skel right-elbow right-shoulder 0.4)
-   (attach-fixed-bone! skel right-hand right-elbow 0.4)
-   (attach-fixed-bone! skel left-foot left-hip 0.8)
-   (attach-fixed-bone! skel right-foot right-hip 0.8)))
+(attach-limited-bone! skel left-hand left-shoulder 0.8)
+(attach-limited-bone! skel right-hand right-shoulder 0.8)
+
+(attach-fixed-bone! skel left-foot left-hip 0.8)
+(attach-fixed-bone! skel right-foot right-hip 0.8)
 
 (attach-poly! pat (list left-shoulder left-hip right-hip right-shoulder) body-style)
 
 (attach-circle! pat head 0.7)
 
-(void (map (curry attach-line! pat) bones))
+(attach-line! pat (cons left-foot left-hip) body-style)
+(attach-line! pat (cons right-foot right-hip) body-style)
+(attach-line! pat (cons left-hand left-elbow) body-style)
+(attach-line! pat (cons left-elbow left-shoulder) body-style)
+(attach-line! pat (cons right-hand right-elbow) body-style)
+(attach-line! pat (cons right-elbow right-shoulder) body-style)
 
 (lock-pattern! pat 'box-figure-basic)
 

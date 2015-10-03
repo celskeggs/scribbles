@@ -1,5 +1,5 @@
 #lang typed/racket
-(provide sq enumerate enumerate-generic list->hash set-union* apply-map2 apply-map apply-each without without-i normalize denormalize many/list
+(provide sq sqrt-opt avg enumerate enumerate-generic list->hash set-union* apply-map2 apply-map apply-each without without-i normalize denormalize many/list
          MutListOf mutlist-map mutlist-enum-map mutlist-append mutlist-append* list->mutlist mutlist-via
          Mutable mut-set! mut-get mut-make mut-wrap-set mut-cell)
 
@@ -78,6 +78,16 @@
   (if (positive? x) ; this helps typed racket correctly infer that the result is always nonnegative!
       (* x x)
       (* x x)))
+
+(: sqrt-opt (-> Real (Option Nonnegative-Real)))
+(define (sqrt-opt x)
+  (if (negative? x)
+      #f
+      (sqrt x)))
+
+(: avg (-> Real Real Real))
+(define (avg a b)
+  (/ (+ a b) 2))
 
 (: enumerate (All (Element) (->* ((Listof Element)) (Nonnegative-Integer) (Listof (Pairof Nonnegative-Integer Element)))))
 (define (enumerate seq [start-at 0])
