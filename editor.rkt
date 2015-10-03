@@ -83,14 +83,3 @@
     (world-add world (new-entity w h)))
   
   (editor-gui world add-entity width height))
-
-#||#
-
-  #|(: save-project ButtonPressFunc)
-  (define (save-project w h)
-    (unless (or (= w 0) (= h 0))
-      (displayln "Saving project...")
-      (let ((path (put-file "Choose where to save your project" #f #f "scribble.scribble"
-                            ".scribble" empty (list (list "Scribbles Projects" "*.scribble") (list "Any" "*.*")))))
-        (when path
-          (save-to (body-save body) (path->string path))))))|#
