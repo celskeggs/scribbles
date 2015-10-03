@@ -1,5 +1,6 @@
 #lang typed/racket
-(provide sq sqrt-opt avg enumerate enumerate-generic list->hash set-union* apply-map2 apply-map apply-each without without-i normalize denormalize many/list
+(provide sq sqrt-opt avg enumerate enumerate-generic list->hash set-union* without without-i normalize denormalize many/list
+         apply-map2 apply-map apply-each map-cars map-cdrs map-cons
          MutListOf mutlist-map mutlist-enum-map mutlist-append mutlist-append* list->mutlist mutlist-via
          Mutable mut-set! mut-get mut-make mut-wrap-set mut-cell)
 
@@ -112,24 +113,6 @@
         [(empty? (cdr sets)) (car sets)]
         [else (set-union (car sets) (set-union* (cdr sets)))]))
 
-(: apply-map2 (All (In1 In2 Out) (-> (Listof (-> In1 In2 Out)) In1 In2 (Listof Out))))
-(define (apply-map2 fs in1 in2)
-  (if (empty? fs)
-      empty
-      (cons ((car fs) in1 in2) (apply-map2 (cdr fs) in1 in2))))
-
-(: apply-map (All (In Out) (-> (Listof (-> In Out)) In (Listof Out))))
-(define (apply-map fs in)
-  (if (empty? fs)
-      empty
-      (cons ((car fs) in) (apply-map (cdr fs) in))))
-
-(: apply-each (All (Out) (-> (Listof (-> Out)) (Listof Out))))
-(define (apply-each fs)
-  (if (empty? fs)
-      empty
-      (cons ((car fs)) (apply-each (cdr fs)))))
-
 (: without (All (E) (-> (Listof E) E (Listof E))))
 (define (without l e)
   (filter-not (curry equal? e) l))
@@ -153,3 +136,34 @@
     [(many/list : Type count body)
      (for/list : (Listof Type) ((_ (range 0 count)))
        body)]))
+
+
+(: apply-map2 (All (In1 In2 Out) (-> (Listof (-> In1 In2 Out)) In1 In2 (Listof Out))))
+(define (apply-map2 fs in1 in2)
+  (if (empty? fs)
+      empty
+      (cons ((car fs) in1 in2) (apply-map2 (cdr fs) in1 in2))))
+
+(: apply-map (All (In Out) (-> (Listof (-> In Out)) In (Listof Out))))
+(define (apply-map fs in)
+  (if (empty? fs)
+      empty
+      (cons ((car fs) in) (apply-map (cdr fs) in))))
+
+(: apply-each (All (Out) (-> (Listof (-> Out)) (Listof Out))))
+(define (apply-each fs)
+  (if (empty? fs)
+      empty
+      (cons ((car fs)) (apply-each (cdr fs)))))
+
+(: map-cars (All (E) (-> (Listof (Pairof E Any)) (Listof E))))
+(define (map-cars lst)
+  (map (inst car E Any) lst))
+
+(: map-cdrs (All (E) (-> (Listof (Pairof Any E)) (Listof E))))
+(define (map-cdrs lst)
+  (map (inst cdr Any E) lst))
+
+(: map-cons (All (A B) (-> (Listof A) (Listof B) (Listof (Pairof A B)))))
+(define (map-cons a b)
+  (map (inst cons A B) a b))
