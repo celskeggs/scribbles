@@ -2,7 +2,8 @@
 (provide sq sqrt-opt avg enumerate enumerate-generic list->hash set-union* without without-i normalize denormalize many/list
          apply-map2 apply-map apply-each map-cars map-cdrs map-cons
          MutListOf mutlist-map mutlist-enum-map mutlist-append mutlist-append* list->mutlist mutlist-via
-         Mutable mut-set! mut-get mut-make mut-wrap-set mut-cell)
+         Mutable mut-set! mut-get mut-make mut-wrap-set mut-cell
+         lockable-struct)
 
 ; mutable lists
 
@@ -167,3 +168,8 @@
 (: map-cons (All (A B) (-> (Listof A) (Listof B) (Listof (Pairof A B)))))
 (define (map-cons a b)
   (map (inst cons A B) a b))
+
+(define-syntax-rule (lockable-struct mutable-name immutable-name (field ...))
+  (begin
+    (struct mutable-name (field ...) #:mutable)
+    (struct immutable-name (field ...))))

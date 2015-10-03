@@ -7,6 +7,7 @@
 (require "gui-controls.rkt")
 (require "functional-graphics.rkt")
 (require "world.rkt")
+(require "setting.rkt")
 (require "entity.rkt")
 (require "saving.rkt")
 

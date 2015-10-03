@@ -2,17 +2,19 @@
 (require "vector.rkt")
 (require "geometry.rkt")
 (require "functional-graphics.rkt")
+(require "joints.rkt")
 (require "skeleton.rkt")
 (require "pattern-base.rkt")
 
 (provide new-box-figure)
 
-(define skel (new-skeleton-def 100))
+(define jts (jointset-def-new 100))
+(define skel (skeleton-def-new jts))
 (define body-style (r:wrap-style "black" 6 'solid (r:color 0 128 0) 'solid))
-(define pat (new-pattern-def skel (r:wrap-style "black" 6 'solid "white" 'solid)))
+(define pat (pattern-def-new skel (r:wrap-style "black" 6 'solid "white" 'solid)))
 
-(define neck (attach-joint! skel 0 -50))
-(define head (attach-joint-rel! skel 0 -100 neck))
+(define neck (attach-joint! jts 0 -50))
+(define head (attach-joint-rel! jts 0 -100 neck))
 (define pelvis (dynamic-joint scale (head neck)
                               (v+ neck (vscale (v- neck head) scale))))
 (define left-shoulder (dynamic-joint scale (head neck)
@@ -27,22 +29,20 @@
 (define right-hip (dynamic-joint scale (neck pelvis)
                                  (v+ pelvis (vscale (vrotate-origin-deg (v- neck pelvis) 90)
                                                    (* scale 0.5)))))
-(define left-hand (attach-joint-rel! skel -150 150 neck))
+(define left-hand (attach-joint-rel! jts -150 150 neck))
 (define left-elbow (dynamic-joint scale (left-shoulder left-hand)
                                   (hypot-known-legs left-shoulder left-hand (* scale -0.4))))
-(define right-hand (attach-joint-rel! skel 150 150 neck))
+(define right-hand (attach-joint-rel! jts 150 150 neck))
 (define right-elbow (dynamic-joint scale (right-shoulder right-hand)
                                    (hypot-known-legs right-shoulder right-hand (* scale 0.4))))
-(define left-foot (attach-joint-rel! skel -50 300 neck))
-(define right-foot (attach-joint-rel! skel 50 300 neck))
+(define left-foot (attach-joint-rel! jts -50 300 neck))
+(define right-foot (attach-joint-rel! jts 50 300 neck))
 
-(attach-fixed-bone! skel head neck 0.5)
-
-(attach-limited-bone! skel left-hand left-shoulder 0.8)
-(attach-limited-bone! skel right-hand right-shoulder 0.8)
-
-(attach-fixed-bone! skel left-foot left-hip 0.8)
-(attach-fixed-bone! skel right-foot right-hip 0.8)
+(void (attach-fixed-bone! skel head neck 0.5)
+      (attach-limited-bone! skel left-hand left-shoulder 0.8)
+      (attach-limited-bone! skel right-hand right-shoulder 0.8)
+      (attach-fixed-bone! skel left-foot left-hip 0.8)
+      (attach-fixed-bone! skel right-foot right-hip 0.8))
 
 (attach-poly! pat (list left-shoulder left-hip right-hip right-shoulder) body-style)
 
@@ -55,6 +55,4 @@
 (attach-line! pat (cons right-hand right-elbow) body-style)
 (attach-line! pat (cons right-elbow right-shoulder) body-style)
 
-(lock-pattern! pat 'box-figure-basic)
-
-(define new-box-figure (pattern-constructor pat))
+(define new-box-figure (pattern-constructor (pattern-lock pat 'box-figure-basic)))

@@ -3,6 +3,7 @@
 (require "vector.rkt")
 (require "gui-handles.rkt")
 (require "functional-graphics.rkt")
+(require "setting.rkt")
 (require "entity.rkt")
 
 (provide gui-controls Button ButtonPress RendererFunc button setting-slider setting-option)

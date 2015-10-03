@@ -1,34 +1,37 @@
 #lang typed/racket
 (require "utils.rkt")
 (require "vector.rkt")
+(require "joints.rkt")
 (require "skeleton.rkt")
 (require "entity.rkt")
 (require "functional-graphics.rkt")
 (require "saving.rkt")
 
 (provide PatternDef RendererSnippet
-         new-pattern-def
+         pattern-def-new
          attach-renderer! attach-line! attach-poly! attach-circle!
-         lock-pattern! pattern-load
-         new-pattern pattern-constructor)
+         pattern-lock pattern-load
+         pattern-new pattern-constructor)
 
 (define-type PatternDef pattern-def)
-(define-type RendererSnippet (-> Skeleton Renderer))
+(define-type LockedPatternDef locked-pattern-def)
+(define-type RendererSnippet (-> Jointset Renderer))
 
 (struct pattern-def ([skeleton : SkeletonDef]
                      [style : Style]
-                     [rev-renderer-snippets : (Listof RendererSnippet)]
-                     [locked-name : (U #f Symbol)]) #:mutable)
+                     [renderer-snippets : (Listof RendererSnippet)]) #:mutable)
+(struct locked-pattern-def ([skeleton : LockedSkeletonDef]
+                            [style : Style]
+                            [renderer-snippets : (Listof RendererSnippet)]
+                            [name : Symbol]))
 
-(: new-pattern-def (-> SkeletonDef Style PatternDef))
-(define (new-pattern-def skel style)
-  (pattern-def skel style empty #f))
+(: pattern-def-new (-> SkeletonDef Style PatternDef))
+(define (pattern-def-new skel style)
+  (pattern-def skel style empty))
 
 (: attach-renderer! (-> PatternDef RendererSnippet Void))
 (define (attach-renderer! pat render)
-  (when (pattern-def-locked-name pat)
-    (error "pattern is locked!"))
-  (set-pattern-def-rev-renderer-snippets! pat (cons render (pattern-def-rev-renderer-snippets pat))))
+  (set-pattern-def-renderer-snippets! pat (cons render (pattern-def-renderer-snippets pat))))
 
 (: attach-line! (->* (PatternDef BoneRef) (Style) Void))
 (define (attach-line! pat br [style r:all])
@@ -49,42 +52,40 @@
 
 (define-predicate valid-enc-skel? EncodedSkeleton)
 
-(: pattern-load (-> PatternDef Encoded Entity))
+(: pattern-load (-> LockedPatternDef Encoded Entity))
 (define (pattern-load pat enc)
   (if (valid-enc-skel? enc)
-      (skeleton->pattern pat  (skeleton-load (pattern-def-skeleton pat) enc))
+      (skeleton->pattern pat (skeleton-load (locked-pattern-def-skeleton pat) enc))
       (error "not a valid saved pattern")))
 
-(: lock-pattern! (-> PatternDef Symbol Void))
-(define (lock-pattern! pat unique-name)
-  (when (pattern-def-locked-name pat)
-    (error "pattern is locked!"))
-  (skeleton-lock! (pattern-def-skeleton pat))
-  (set-pattern-def-locked-name! pat unique-name)
-  (register-entity-brand! unique-name (curry pattern-load pat)))
+(: pattern-lock (-> PatternDef Symbol LockedPatternDef))
+(define (pattern-lock pat unique-name)
+  (define locked
+    (locked-pattern-def (skeleton-lock (pattern-def-skeleton pat))
+                        (pattern-def-style pat)
+                        (reverse (pattern-def-renderer-snippets pat))
+                        unique-name))
+  (register-entity-brand! unique-name (curry pattern-load locked))
+  locked)
 
-(: skeleton->pattern (-> PatternDef Skeleton Entity))
+(: skeleton->pattern (-> LockedPatternDef Skeleton Entity))
 (define (skeleton->pattern def skel)
-  (define name (pattern-def-locked-name def))
-  (unless name
-    (error "pattern is not locked!"))
+  (define name (locked-pattern-def-name def))
   (entity (list->mutlist (skeleton-handles skel))
-          (list (setting-positive-slider "Scale" 1 200 (skeleton-scale skel)))
+          (skeleton-settings skel)
           (lambda (w h)
               (update-skeleton skel)
-              (apply (pattern-def-style def)
-                     (for/list : (Listof Renderer) ((rend : RendererSnippet (reverse (pattern-def-rev-renderer-snippets def))))
-                       (rend skel))))
+              (apply (locked-pattern-def-style def)
+                     (ann (apply-map (locked-pattern-def-renderer-snippets def) (skeleton-js skel))
+                          (Listof Renderer))))
           (lambda ()
             (list name
                   (skeleton-save skel)))))
 
-(: new-pattern (-> PatternDef Real Real Entity))
-(define (new-pattern def x y)
-  (unless (pattern-def-locked-name def)
-    (error "pattern is not locked!"))
-  (skeleton->pattern def (new-skeleton (pattern-def-skeleton def) x y)))
+(: pattern-new (-> LockedPatternDef Vector2D Entity))
+(define (pattern-new def base-vec)
+  (skeleton->pattern def (skeleton-new (locked-pattern-def-skeleton def) base-vec)))
 
-(: pattern-constructor (-> PatternDef (-> Real Real Entity)))
+(: pattern-constructor (-> LockedPatternDef (-> Vector2D Entity)))
 (define (pattern-constructor def)
-  (curry new-pattern def))
+  (curry pattern-new def))

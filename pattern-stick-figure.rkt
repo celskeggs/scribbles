@@ -1,25 +1,27 @@
 #lang typed/racket
 (require "vector.rkt")
 (require "functional-graphics.rkt")
+(require "joints.rkt")
 (require "skeleton.rkt")
 (require "pattern-base.rkt")
 
 (provide new-stick-figure)
 
-(define skel (new-skeleton-def 100))
-(define pat (new-pattern-def skel (r:wrap-style "black" 6 'solid "white" 'solid)))
+(define jts (jointset-def-new 100))
+(define skel (skeleton-def-new jts))
+(define pat (pattern-def-new skel (r:wrap-style "black" 6 'solid "white" 'solid)))
 
-(define head (attach-joint! skel 0 -1))
-(define collar (attach-joint! skel 0 0))
-(define pelvis (attach-joint! skel 0 1))
-(define left-elbow (attach-joint! skel -1 1))
-(define left-hand (attach-joint! skel 0 1))
-(define right-elbow (attach-joint! skel 1 1))
-(define right-hand (attach-joint! skel 0 1))
-(define left-knee (attach-joint! skel -1 1))
-(define left-foot (attach-joint! skel 0 1))
-(define right-knee (attach-joint! skel 1 1))
-(define right-foot (attach-joint! skel 0 1))
+(define head (attach-joint! jts 0 -1))
+(define collar (attach-joint! jts 0 0))
+(define pelvis (attach-joint! jts 0 1))
+(define left-elbow (attach-joint! jts -1 1))
+(define left-hand (attach-joint! jts 0 1))
+(define right-elbow (attach-joint! jts 1 1))
+(define right-hand (attach-joint! jts 0 1))
+(define left-knee (attach-joint! jts -1 1))
+(define left-foot (attach-joint! jts 0 1))
+(define right-knee (attach-joint! jts 1 1))
+(define right-foot (attach-joint! jts 0 1))
 
 (: bones (Listof BoneRef))
 (define bones
@@ -37,8 +39,6 @@
 
 (attach-circle! pat head 0.5)
 
-(map (curry attach-line! pat) bones)
+(void (map (curry attach-line! pat) bones))
 
-(lock-pattern! pat 'stick-figure-basic)
-
-(define new-stick-figure (pattern-constructor pat))
+(define new-stick-figure (pattern-constructor (pattern-lock pat 'stick-figure-basic)))
