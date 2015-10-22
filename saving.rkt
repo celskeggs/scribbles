@@ -3,11 +3,11 @@
 
 (provide Encoded save-to load-from)
 
-(define-type Encoded (U (Listof Encoded) Real String Symbol Vector2D))
+(define-type Encoded (U (Listof Encoded) Real String Symbol Boolean Vector2D))
 
 (struct par-vec ([x : Real] [y : Real]) #:prefab)
 
-(define-type Partial (U (Listof Partial) Real String Symbol par-vec))
+(define-type Partial (U (Listof Partial) Real String Symbol Boolean par-vec))
 
 (: partial-enc (-> Encoded Partial))
 (define (partial-enc x)
@@ -21,6 +21,7 @@
         ((real? x) x)
         ((string? x) x)
         ((symbol? x) x)
+        ((boolean? x) x)
         ((par-vec? x) (vec (par-vec-x x) (par-vec-y x)))
         (else (error "invalid encoding"))))
 

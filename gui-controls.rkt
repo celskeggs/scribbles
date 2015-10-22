@@ -6,7 +6,7 @@
 (require "setting.rkt")
 (require "entity.rkt")
 
-(provide gui-controls Button ButtonPress RendererFunc button setting-slider setting-option)
+(provide gui-controls Button ButtonPress RendererFunc button)
 
 (define button-size 40)
 (define control-height 30)
@@ -78,7 +78,7 @@
 
   (gui-handles render handles controls in-view-mode? width height title))
 
-(when #f
+#|(when #f
   (define test-vec (vec 30 30))
   (define slider-value (mut-cell (ann 0 Real)))
   (define option-value (mut-cell (ann #f Boolean)))
@@ -94,4 +94,4 @@
                                      (setting-option "Test Option" option-value)))
                 (lambda (w h) (r:line test-vec (vec (/ w 2) (/ h 2))))
                 (list (button (lambda (w h) (displayln "HELLO WORLD")) "red"))
-                600 600 "Test of gui-controls"))
+                600 600 "Test of gui-controls"))|#

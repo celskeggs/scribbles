@@ -2,8 +2,8 @@
 (require "utils.rkt")
 (require "vector.rkt")
 (require "geometry.rkt")
+(require "setting-group.rkt")
 (require "joints.rkt")
-(require "setting.rkt")
 
 (provide SkeletonDef LockedSkeletonDef Skeleton Constraint SimpleConstraint EncodedSkeleton
          skeleton-def-new
@@ -86,6 +86,6 @@
 (define (skeleton-handles skel)
   (jointset-handles (skeleton-js skel)))
 
-(: skeleton-settings (-> Skeleton (Listof Setting)))
+(: skeleton-settings (-> Skeleton SettingGroup))
 (define (skeleton-settings skel)
-  (list (setting-positive-slider "Scale" 1 200 (jointset-scale (skeleton-js skel)))))
+  (jointset-settings (skeleton-js skel)))

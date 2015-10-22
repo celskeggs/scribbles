@@ -40,7 +40,7 @@
 (define (hypot-known-legs left right leg)
   (let ((root (sqrt-opt (- (sq leg) (sq (/ (vdist left right) 2))))))
     (if root
-        (hypot-triangle left right root)
+        (hypot-triangle left right (if (positive? leg) root (- root)))
         (midpoint left right)))) ; TODO: is this graceful degradation optimal?
 
 (: fixed-distance (-> Vector2D Vector2D Positive-Real Vector2D))
