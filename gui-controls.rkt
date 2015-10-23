@@ -23,6 +23,7 @@
 (: button->control (-> Vector2D Button Control))
 (define (button->control pos button)
   (list (lambda (w h) (r:brush (btn-color button) 'solid (r:rect pos button-size button-size)))
+        #f
         (lambda (x y w h) ((btn-press button) w h))
         void))
 
@@ -39,6 +40,7 @@
                                                              (normalize min max (mut-get value-box)))
                                                (exact-ceiling (/ control-height 2)))
                                      (r:text text-pos name)))
+                #t
                 (lambda (x y w h) (mut-set! value-box (denormalize min max
                                                                    (normalize (vec-x line-start)
                                                                               (vec-x line-end)
@@ -49,6 +51,7 @@
         (let ((text-pos (v+ pos (vec (+ box-size 10) 0))))
           (list (lambda (w h) (r:all (r:brush (if (mut-get value-box) "green" "white") 'solid (r:rect pos box-size box-size))
                                      (r:text text-pos name)))
+                #f
                 (lambda (x y w h) (mut-set! value-box (not (mut-get value-box))))
                 void)))))
 
@@ -64,6 +67,7 @@
   (: view-mode-control Control)
   (define view-mode-control
     (list (lambda (w h) (r:rect (vec (- w button-size) 0) button-size button-size))
+          #f
           (lambda (x y w h) (set! view-mode #t))
           (lambda (x y w h) (set! view-mode #f))))
 

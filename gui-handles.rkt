@@ -11,7 +11,7 @@
 (define drag-style (r:wrap-style "black" 1 'solid "white" 'solid))
 
 (define-type ButtonFunc (-> Nonnegative-Integer Nonnegative-Integer Positive-Integer Positive-Integer Void))
-(define-type Control (List RendererFunc ButtonFunc ButtonFunc)) ; press, release
+(define-type Control (List RendererFunc Boolean ButtonFunc ButtonFunc)) ; render, draggable, press, release
 
 (struct active-drag ([index : Nonnegative-Integer] [rel : Vector2D]) #:transparent)
 
@@ -56,29 +56,17 @@
     (if (in-view-mode?)
         client-render
         (r:all client-render
-               (apply controls-style (apply-map2 ((inst map RendererFunc Control) car (controls)) w h))
+               (apply controls-style (apply-map2 (map-cars (controls)) w h))
                (let ((handles (map (inst mut-get Vector2D) (handles))))
                  (apply r:all (map render-handle (range 0 (length handles)) handles))))))
-  
-            #| old controls
-        (send dc set-brush regular-brush)
-        (send dc draw-rectangle (- w sel-box-size) 0 sel-box-size sel-box-size)
-        (for ((pair (enumerate buttons)))
-          (send dc set-brush (cadr pair) 'solid)
-          (send dc draw-rectangle (- w (* sel-box-size (+ 2 (car pair)))) 0 sel-box-size sel-box-size))) |#
 
-    #| (if (and (>= x (- w (* sel-box-size (+ 1 (length buttons))))) (<= y sel-box-size))
-        (let ((index (exact-floor (/ (- w x) sel-box-size))))
-          (if (= index 0)
-              (set! in-view-mode #t)
-              ((cdr (list-ref buttons (- index 1))) w h))) |#
-
-  (: try-control-click (-> Nonnegative-Integer Nonnegative-Integer Positive-Integer Positive-Integer Boolean))
-  (define (try-control-click x y w h)
+  (: try-control-click (-> Nonnegative-Integer Nonnegative-Integer Positive-Integer Positive-Integer Boolean Boolean))
+  (define (try-control-click x y w h is-drag?)
     (for/or : Boolean ((control : Control (controls)))
       (if (r:contains ((ann (car control) RendererFunc) w h) x y)
           (begin
-            ((cadr control) x y w h)
+            (when (or (not is-drag?) (cadr control))
+              ((third control) x y w h))
             #t)
           #f)))
   
@@ -87,7 +75,7 @@
     (set! mouse-pos (vec x y))
     (or (let ((handles (map (inst mut-get Vector2D) (handles))))
           (ormap try-drag-handle (range 0 (length handles)) handles))
-        (try-control-click x y w h))
+        (try-control-click x y w h #f))
     (void)) ; void because we don't care about any results
 
   (: update-dragging (-> Void))
@@ -100,7 +88,7 @@
   (: drag MouseFunc)
   (define (drag x y w h)
     (unless drag-status
-      (try-control-click x y w h))
+      (try-control-click x y w h #t))
     (set! mouse-pos (vec x y))
     (update-dragging))
 
@@ -115,6 +103,6 @@
       (update-dragging)
       (set! drag-status #f))
     (for ((control : Control (controls)))
-      ((caddr control) x y w h)))
+      ((fourth control) x y w h)))
   
   (gui-basic render press drag move release width height title))
