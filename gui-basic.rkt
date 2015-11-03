@@ -17,7 +17,7 @@
 
       (: renderer (U #f Renderer))
       (define renderer #f)
-      
+
       (define/override (on-event event)
         (let ((x (send event get-x))
               (y (send event get-y))

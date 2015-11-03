@@ -20,7 +20,7 @@
 (define-type DerivedJointRef (-> Jointset Vector2D))
 (define-type JointRef (U RealJointRef DerivedJointRef))
 (define-type BoneRef (Pairof JointRef JointRef))
-(define-type Scale Positive-Real)
+(define-type Scale Positive-Float)
 (define-type HandleTX (-> (Mutable Vector2D) Jointset (Mutable Vector2D)))
 
 (lockable-struct jointset-def locked-jointset-def
@@ -39,7 +39,7 @@
 (define (jointset-option-ref js name)
   (setting->value (setting-group-option-ref (jointset-settings js) name)))
 
-(: jointset-slider-ref (-> Jointset String Real))
+(: jointset-slider-ref (-> Jointset String Float))
 (define (jointset-slider-ref js name)
   (setting->value (setting-group-slider-ref (jointset-settings js) name)))
 
@@ -61,7 +61,7 @@
 
 (: jointset-def-new (->* (Scale) (SettingPrototypeGroup) JointsetDef))
 (define (jointset-def-new default-scale [default-settings setting-prototype-group-empty])
-  (jointset-def empty (setting-prototype-group-add (setting-positive-slider-proto "scale" 1 200 default-scale)
+  (jointset-def empty (setting-prototype-group-add (setting-positive-slider-proto "scale" 1.0 200.0 default-scale)
                                                    default-settings)))
 
 (: jointset-lock (-> JointsetDef LockedJointsetDef))
@@ -86,7 +86,7 @@
                                       (setting-prototype-group-add proto
                                                                    (jointset-def-default-settings js))))
 
-(: attach-joint! (->* (JointsetDef Real Real) (HandleTX) RealJointRef))
+(: attach-joint! (->* (JointsetDef Float Float) (HandleTX) RealJointRef))
 (define (attach-joint! skel dx dy [htx base-htx])
   (define new-joint-id (length (jointset-def-joint-inits skel)))
   (set-jointset-def-joint-inits! skel (cons (cons (vec dx dy) htx)
@@ -105,7 +105,7 @@
          (proc (cdr (list-ref inits i))))
     (proc vec skel)))
 
-(: attach-joint-rel! (-> JointsetDef Real Real JointRef RealJointRef))
+(: attach-joint-rel! (-> JointsetDef Float Float JointRef RealJointRef))
 (define (attach-joint-rel! skel dx dy base-joint)
   (attach-joint! skel dx dy (lambda ([base : (Mutable Vector2D)] [skel : Jointset])
                               (mut-make (lambda () (v+ (joint-ref skel base-joint) (mut-get base)))
@@ -129,7 +129,7 @@
 (define (jointset-new def base-vec)
   (let* ((joint-inits (locked-jointset-def-joint-inits def))
          (vecs (many/list : (Mutable Vector2D) (length joint-inits)
-                          (mut-cell (vec 0 0))))
+                          (mut-cell (vec 0.0 0.0))))
          (sk (jointset vecs (setting-group-instantiate (locked-jointset-def-default-settings def)) def)))
     (for ((prx joint-inits) (handle (jointset-handles sk)))
       (mut-set! handle (v+ base-vec (car prx))))
@@ -138,7 +138,7 @@
 (: jointset-load (-> LockedJointsetDef EncodedJointset Jointset))
 (define (jointset-load def enc)
   (jointset (map (inst mut-cell Vector2D) (first enc))
-            (setting-group-load (second enc) (locked-jointset-def-default-settings def))
+            (setting-group-load (car (cdr enc)) (locked-jointset-def-default-settings def))
             def))
 
 (: jointset-save (-> Jointset EncodedJointset))

@@ -36,9 +36,9 @@
 
 (: entity-load (-> Encoded Entity))
 (define (entity-load ent)
-  (if (and (list? ent) (= 2 (length ent)))
+  (if (and (pair? ent) (pair? (cdr ent)) (null? (cdr (cdr ent))))
       (let ((head (car ent)))
         (if (symbol? head)
-            ((hash-ref entity-brands head) (cadr ent))
+            ((hash-ref entity-brands head) (car (cdr ent)))
             (error "invalid entity to load")))
       (error "invalid entity to load")))

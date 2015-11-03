@@ -13,47 +13,47 @@
 ; biased clockwise. (0, 0) and (5, 0) will be matched with (0, -5).
 (: right-triangle (-> Vector2D Vector2D Vector2D))
 (define (right-triangle center foot)
-  (triangle-deg center foot -90)) ; TODO: make this slightly more accurate?
+  (triangle-deg center foot -90.0)) ; TODO: make this slightly more accurate?
 
 ; biased so that L--R -> below and R--L -> above.
 (: hypot-right-triangle (-> Vector2D Vector2D Vector2D))
 (define (hypot-right-triangle left right)
   (right-triangle (midpoint left right) right))
 
-(: triangle-deg (-> Vector2D Vector2D Real Vector2D))
+(: triangle-deg (-> Vector2D Vector2D Float Vector2D))
 (define (triangle-deg center foot d)
   (vrotate-deg foot center d))
 
-(: triangle-rad (-> Vector2D Vector2D Real Vector2D))
+(: triangle-rad (-> Vector2D Vector2D Float Vector2D))
 (define (triangle-rad center foot r)
   (vrotate-rad foot center r))
 
 ; positive above L--R and negative below L--R
-(: hypot-triangle (-> Vector2D Vector2D Real Vector2D))
+(: hypot-triangle (-> Vector2D Vector2D Float Vector2D))
 (define (hypot-triangle left right height)
   (v+ (midpoint left right)
       (vscale (vrotate-origin-deg (v- left right)
-                                  (if (negative? height) -90 90))
+                                  (if (negative? height) -90.0 90.0))
               (abs height))))
 
-(: hypot-known-legs (-> Vector2D Vector2D Real Vector2D))
+(: hypot-known-legs (-> Vector2D Vector2D Float Vector2D))
 (define (hypot-known-legs left right leg)
   (let ((root (sqrt-opt (- (sq leg) (sq (/ (vdist left right) 2))))))
     (if root
         (hypot-triangle left right (if (positive? leg) root (- root)))
         (midpoint left right)))) ; TODO: is this graceful degradation optimal?
 
-(: fixed-distance (-> Vector2D Vector2D Positive-Real Vector2D))
+(: fixed-distance (-> Vector2D Vector2D Positive-Float Vector2D))
 (define (fixed-distance variant invariant distance)
   (v+ invariant (vscale (v- variant invariant) distance)))
 
-(: maximum-distance (-> Vector2D Vector2D Positive-Real Vector2D))
+(: maximum-distance (-> Vector2D Vector2D Positive-Float Vector2D))
 (define (maximum-distance variant invariant distance)
   (if (> (vdist variant invariant) distance)
       (fixed-distance variant invariant distance)
       variant))
 
-(: minimum-distance (-> Vector2D Vector2D Positive-Real Vector2D))
+(: minimum-distance (-> Vector2D Vector2D Positive-Float Vector2D))
 (define (minimum-distance variant invariant distance)
   (if (< (vdist variant invariant) distance)
       (fixed-distance variant invariant distance)

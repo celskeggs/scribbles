@@ -15,13 +15,13 @@
 (define-type RendererFunc (-> Nonnegative-Integer Nonnegative-Integer Renderer))
 
 (define-type Color (U String (Instance Color%)))
-(define-type Renderer (Pairof (-> (Instance DC<%>) Void) (-> Real Real Boolean)))
+(define-type Renderer (Pairof (-> (Instance DC<%>) Void) (-> Float Float Boolean)))
 (define-type Style (-> Renderer * Renderer))
 
 (define-syntax-rule (genren (dc x y) render check)
   (cons (lambda ([dc : (Instance DC<%>)])
           render)
-        (lambda ([x : Real] [y : Real])
+        (lambda ([x : Float] [y : Float])
           check)))
 
 (: r:wrap-style (-> Color Positive-Integer Pen-Style Color Brush-Style Style))
@@ -63,13 +63,13 @@
           (send dc draw-line (vec-x v1) (vec-y v1) (vec-x v2) (vec-y v2))
           #f)) ; TODO: allow line collision detection?
 
-(: r:circle (-> Vector2D Positive-Real Renderer))
+(: r:circle (-> Vector2D Positive-Float Renderer))
 (define (r:circle center rad)
   (genren (dc x y)
           (send dc draw-ellipse (- (vec-x center) rad) (- (vec-y center) rad) (* rad 2) (* rad 2))
           (vin-circle? (vec x y) center rad)))
 
-(: r:rect (-> Vector2D Positive-Real Positive-Real Renderer))
+(: r:rect (-> Vector2D Positive-Float Positive-Float Renderer))
 (define (r:rect pos width height)
   (genren (dc x y)
           (send dc draw-rectangle (vec-x pos) (vec-y pos) width height)
@@ -81,7 +81,7 @@
           (send dc draw-polygon (map vec->pair points))
           #f)) ; TODO: allow polygon collision detection?
 
-(: r:blank (-> Vector2D Positive-Real Positive-Real Renderer))
+(: r:blank (-> Vector2D Positive-Float Positive-Float Renderer))
 (define (r:blank pos width height)
   (genren (dc x y)
           (void)
@@ -101,7 +101,7 @@
           (for/or : Boolean ((body : Renderer bodies))
             ((cdr body) x y))))
 
-(: r:contains (-> Renderer Real Real Boolean))
+(: r:contains (-> Renderer Float Float Boolean))
 (define (r:contains rf x y)
   ((cdr rf) x y))
 

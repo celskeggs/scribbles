@@ -1,21 +1,23 @@
 #lang typed/racket
+(require racket/flonum)
 (require "utils.rkt")
 (require "vector.rkt")
 (require "gui-basic.rkt")
 (require "functional-graphics.rkt")
 
-(provide ButtonFunc RendererFunc Control gui-handles)
+(provide ButtonFunc RendererFunc Control gui-handles control)
 
 (define controls-style (r:wrap-style "black" 1 'solid "blue" 'solid))
 (define hover-style (r:wrap-style "black" 1 'solid (r:color 0 192 192) 'solid))
 (define drag-style (r:wrap-style "black" 1 'solid "white" 'solid))
 
 (define-type ButtonFunc (-> Nonnegative-Integer Nonnegative-Integer Positive-Integer Positive-Integer Void))
-(define-type Control (List RendererFunc Boolean ButtonFunc ButtonFunc)) ; render, draggable, press, release
+(struct control ([render : RendererFunc] [draggable : Boolean] [press : ButtonFunc] [release : ButtonFunc]))
+(define-type Control control)
 
 (struct active-drag ([index : Nonnegative-Integer] [rel : Vector2D]) #:transparent)
 
-(define handle-radius 6)
+(define handle-radius 6.0)
 
 (: gui-handles (-> RendererFunc (MutListOf (Mutable Vector2D)) (MutListOf Control) (-> Boolean) Positive-Integer Positive-Integer String Void))
 (define (gui-handles render-body handles controls in-view-mode? width height title)
@@ -23,7 +25,7 @@
   (: drag-status (U #f active-drag))
   (define drag-status #f) ; stores for the currently-dragging handle: the index and the relative offset
   (: mouse-pos Vector2D)
-  (define mouse-pos (vec 0 0)) ; the vector of the mouse's last position
+  (define mouse-pos (vec 0.0 0.0)) ; the vector of the mouse's last position
 
   (: hovering? (-> Vector2D Boolean))
   (define (hovering? handle-pos)
@@ -56,23 +58,23 @@
     (if (in-view-mode?)
         client-render
         (r:all client-render
-               (apply controls-style (apply-map2 (map-cars (controls)) w h))
+               (apply controls-style (apply-map2 (map control-render (controls)) w h))
                (let ((handles (map (inst mut-get Vector2D) (handles))))
                  (apply r:all (map render-handle (range 0 (length handles)) handles))))))
 
   (: try-control-click (-> Nonnegative-Integer Nonnegative-Integer Positive-Integer Positive-Integer Boolean Boolean))
   (define (try-control-click x y w h is-drag?)
     (for/or : Boolean ((control : Control (controls)))
-      (if (r:contains ((ann (car control) RendererFunc) w h) x y)
+      (if (r:contains ((ann (control-render control) RendererFunc) w h) (->fl x) (->fl y))
           (begin
-            (when (or (not is-drag?) (cadr control))
-              ((third control) x y w h))
+            (when (or (not is-drag?) (control-draggable control))
+              ((control-press control) x y w h))
             #t)
           #f)))
   
   (: press MouseFunc)
   (define (press x y w h)
-    (set! mouse-pos (vec x y))
+    (set! mouse-pos (vec (->fl x) (->fl y)))
     (or (let ((handles (map (inst mut-get Vector2D) (handles))))
           (ormap try-drag-handle (range 0 (length handles)) handles))
         (try-control-click x y w h #f))
@@ -89,20 +91,20 @@
   (define (drag x y w h)
     (unless drag-status
       (try-control-click x y w h #t))
-    (set! mouse-pos (vec x y))
+    (set! mouse-pos (vec (->fl x) (->fl y)))
     (update-dragging))
 
   (: move MouseFunc)
   (define (move x y w h)
-    (set! mouse-pos (vec x y)))
+    (set! mouse-pos (vec (->fl x) (->fl y))))
 
   (: release MouseFunc)
   (define (release x y w h)
-    (set! mouse-pos (vec x y))
+    (set! mouse-pos (vec (->fl x) (->fl y)))
     (unless (in-view-mode?)
       (update-dragging)
       (set! drag-status #f))
     (for ((control : Control (controls)))
-      ((fourth control) x y w h)))
+      ((control-release control) x y w h)))
   
   (gui-basic render press drag move release width height title))

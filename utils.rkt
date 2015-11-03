@@ -75,19 +75,19 @@
 
 ; everything else
 
-(: sq (-> Real Nonnegative-Real))
+(: sq (-> Float Nonnegative-Float))
 (define (sq x)
-  (if (positive? x) ; this helps typed racket correctly infer that the result is always nonnegative!
+  (if (negative? x) ; this helps typed racket correctly infer that the result is always nonnegative!
       (* x x)
       (* x x)))
 
-(: sqrt-opt (-> Real (Option Nonnegative-Real)))
+(: sqrt-opt (-> Float (Option Nonnegative-Float)))
 (define (sqrt-opt x)
   (if (negative? x)
       #f
       (sqrt x)))
 
-(: avg (-> Real Real Real))
+(: avg (-> Float Float Float))
 (define (avg a b)
   (/ (+ a b) 2))
 
@@ -124,11 +124,11 @@
         ((= i 0) (cdr l))
         (else (cons (car l) (without-i (cdr l) (- i 1))))))
 
-(: normalize (-> Real Real Real Real))
+(: normalize (-> Float Float Float Float))
 (define (normalize min max value) ; convert to [0, 1] range.
   (/ (- value min) (- max min)))
 
-(: denormalize (-> Real Real Real Real))
+(: denormalize (-> Float Float Float Float))
 (define (denormalize min max value) ; convert from [0, 1] range.
   (+ min (* value (- max min))))
 

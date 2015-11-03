@@ -5,4 +5,4 @@
 (require "editor.rkt")
 
 (editor-main (lambda (w h)
-               (new-box-figure (vec (/ w 2) (/ h 2)))))
+               (new-box-figure (vec (/ w 2.0) (/ h 2.0)))))

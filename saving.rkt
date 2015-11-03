@@ -3,11 +3,11 @@
 
 (provide Encoded save-to load-from)
 
-(define-type Encoded (U (Listof Encoded) Real String Symbol Boolean Vector2D))
+(define-type Encoded (U (Listof Encoded) Float String Symbol Boolean Vector2D))
 
-(struct par-vec ([x : Real] [y : Real]) #:prefab)
+(struct par-vec ([x : Float] [y : Float]) #:prefab)
 
-(define-type Partial (U (Listof Partial) Real String Symbol Boolean par-vec))
+(define-type Partial (U (Listof Partial) Float String Symbol Boolean par-vec))
 
 (: partial-enc (-> Encoded Partial))
 (define (partial-enc x)
@@ -18,7 +18,7 @@
 (: partial-dec (-> Any Encoded))
 (define (partial-dec x)
   (cond ((list? x) (map partial-dec x))
-        ((real? x) x)
+        ((flonum? x) x)
         ((string? x) x)
         ((symbol? x) x)
         ((boolean? x) x)

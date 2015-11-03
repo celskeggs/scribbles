@@ -10,7 +10,7 @@
 
 (define-type SettingPrototypeGroup (Listof SettingPrototype))
 (define-type SettingGroup (Listof Setting))
-(define-type EncodedSettingGroup (List String (Listof (U Real Boolean))))
+(define-type EncodedSettingGroup (List String (Listof (U Float Boolean))))
 
 (: setting-prototype-group-empty SettingPrototypeGroup)
 (define setting-prototype-group-empty empty)
@@ -18,8 +18,8 @@
 (: setting-prototype-group-add (-> SettingPrototype SettingPrototypeGroup SettingPrototypeGroup))
 (define (setting-prototype-group-add setting group)
   (for ((old-setting group))
-    (when (equal? (setting-key old-setting) (setting-key setting))
-      (error "Name already exists in setting group:" (setting-key setting))))
+    (when (equal? (setting-prototype-key old-setting) (setting-prototype-key setting))
+      (error "Name already exists in setting group:" (setting-prototype-key setting))))
   (cons setting group))
 
 ; ============
@@ -41,7 +41,7 @@
 (: setting-prototype-group-ref (-> SettingPrototypeGroup String SettingPrototype))
 (define (setting-prototype-group-ref group name)
   (cond ((empty? group) (error "No such setting in setting group:" name))
-        ((equal? name (setting-key (car group))) (car group))
+        ((equal? name (setting-prototype-key (car group))) (car group))
         (else (setting-prototype-group-ref (cdr group) name))))
 
 ; ============
@@ -74,17 +74,17 @@
 
 ; ============
 
-(: setting-group->pairs (-> SettingGroup (Listof (Pairof String (U Real Boolean)))))
+(: setting-group->pairs (-> SettingGroup (Listof (Pairof String (U Float Boolean)))))
 (define (setting-group->pairs group)
   (sort
-   (for/list : (Listof (Pairof String (U Real Boolean))) ((setting group))
+   (for/list : (Listof (Pairof String (U Float Boolean))) ((setting group))
      (cons (setting-key setting) (setting->value setting)))
    (lambda ([a : (Pairof String Any)] [b : (Pairof String Any)])
      (string<? (car a) (car b)))))
 
 (: setting-prototype-group->pairs (-> SettingPrototypeGroup (Listof String)))
 (define (setting-prototype-group->pairs proto)
-  (sort (map-cars proto)
+  (sort (map setting-prototype-key proto)
         string<?))
 
 (: setting-prototype-group-signature (-> SettingPrototypeGroup String))
@@ -103,7 +103,7 @@
 (: setting-group-load (-> EncodedSettingGroup SettingPrototypeGroup SettingGroup))
 (define (setting-group-load enc proto)
   (let ((signature-loaded (car enc))
-        (vals (cadr enc))
+        (vals (car (cdr enc)))
         (signature-expected (setting-prototype-group-signature proto))
         (names (setting-prototype-group->pairs proto))
         (group (setting-group-instantiate proto)))
