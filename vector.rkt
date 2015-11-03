@@ -1,5 +1,6 @@
 #lang typed/racket
 (require "utils.rkt")
+(require racket/performance-hint)
 
 (provide Vector2D vec? vec vec-x vec-y vunpack vec->pair
          v+ v- v*c
@@ -11,10 +12,10 @@
 
 (struct vecstr ([x : Float] [y : Float]) #:transparent)
 
+(begin-encourage-inline
 (define vec? vecstr?)
 (define vec-x vecstr-x)
 (define vec-y vecstr-y)
-
 (: vec (-> Float Float Vector2D))
 (define (vec x y) (vecstr x y))
 
@@ -103,3 +104,4 @@
 (: vrotate-deg (-> Vector2D Vector2D Float Vector2D))
 (define (vrotate-deg original around degrees)
   (vrotate-rad original around (degrees->radians degrees)))
+)
