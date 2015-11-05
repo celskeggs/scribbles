@@ -1,6 +1,8 @@
 #lang typed/racket
 (require typed/racket/gui)
 (require typed/racket/draw)
+(require/typed "worker.rkt"
+               [dropping-worker (All (Item) (-> (-> Item Void) (-> Item Void)))])
 
 (require "functional-graphics.rkt")
 
@@ -18,6 +20,12 @@
       (: renderer (U #f Renderer))
       (define renderer #f)
 
+      (: worker (-> (List Nonnegative-Integer Nonnegative-Integer) Void))
+      (define worker (dropping-worker
+                      (lambda ([wh : (List Nonnegative-Integer Nonnegative-Integer)])
+                        (set! renderer (provide-renderer (car wh) (cadr wh)))
+                        (send this refresh))))
+
       (define/override (on-event event)
         (let ((x (send event get-x))
               (y (send event get-y))
@@ -29,18 +37,13 @@
                ((motion) (if (send event get-left-down) drag move))
                ((left-up) release)
                (else void)) x y w h)
-            (set! renderer (provide-renderer w h))
-            (send this refresh))))
+            (worker (list w h)))))
       
       (define/override (on-paint)
         (define render renderer)
-        (define real-render
-          (if render
-              render
-              (let ((got (provide-renderer (get-width) (get-height))))
-                (set! renderer got)
-                got)))
-        (r:render-to real-render (get-dc)))
+        (if render
+            (r:render-to render (get-dc))
+            (worker (list (get-width) (get-height)))))
       
       (super-new)))
   (new my-canvas% [parent frame])
