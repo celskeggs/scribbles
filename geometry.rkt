@@ -3,6 +3,7 @@
 (require "vector.rkt")
 
 (provide midpoint right-triangle hypot-right-triangle triangle-deg triangle-rad hypot-triangle hypot-known-legs
+         translate-along-sphere
          fixed-distance maximum-distance minimum-distance)
 
 (: midpoint (-> Vector2D Vector2D Vector2D))
@@ -58,3 +59,26 @@
   (if (< (vdist variant invariant) distance)
       (fixed-distance variant invariant distance)
       variant))
+
+(: x*c (-> Vector2D Float Vector2D))
+(define (x*c v s)
+  (vec (* (vec-x v) s) (vec-y v)))
+
+(: translate-along-sphere (-> Vector2D Vector2D Vector2D Float Vector2D))
+(define (translate-along-sphere center top align tx)
+  (let* ((rel-top (v- top center))
+         (rel-align (v- align center))
+         (radius (vlen rel-top))
+         (rotation-to (atan (vec-x rel-top) (vec-y rel-top))) ; such that (= (vrotate-rad rel-top rotation-to) (vec 0 radius))
+         (rot-align (vrotate-origin-rad rel-align rotation-to))
+         (x-for-the-y (sqrt-opt (- (sq radius) (sq (vec-y rot-align))))))
+    (if x-for-the-y
+        (let* ((scale-factor (/ x-for-the-y (vec-x rot-align)))
+               (inv-scale-factor (/ 1 scale-factor))
+               (scalerot-align (x*c rot-align scale-factor))
+               (translation (- (/ tx radius))) ; (/ tx radius) is the translation of length tx around a circle of length radius, in radians!
+               (scalerot-tx (vrotate-origin-rad scalerot-align translation))
+               (rel-tx (vrotate-origin-rad (x*c scalerot-tx inv-scale-factor) (- rotation-to)))
+               (final-tx (v+ rel-tx center)))
+          final-tx)
+        (error "translate-along-sphere must be in sphere!"))))
