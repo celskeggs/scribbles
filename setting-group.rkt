@@ -89,7 +89,7 @@
 
 (: setting-prototype-group-signature (-> SettingPrototypeGroup String))
 (define (setting-prototype-group-signature proto)
-  (when (member #\n (string->list (string-append* (setting-prototype-group->pairs proto))))
+  (when (member #\newline (string->list (string-append* (setting-prototype-group->pairs proto))))
     (error "Newlines are not valid in setting names!")) ; TODO: check this earlier?
   (string-join (setting-prototype-group->pairs proto) "\n"))
 
