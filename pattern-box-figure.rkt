@@ -46,7 +46,7 @@
 (define left-foot (attach-joint-rel! jts 50.0 300.0 neck))
 (define right-foot (attach-joint-rel! jts -50.0 300.0 neck))
 
-(define face (attach-joint-rel! jts 0.0 0.0 head))
+(define face (attach-joint-rel! jts 0.0 -110.0 head))
 (define orig-top-of-head (dynamic-joint scale () () (head)
                                    (v- head (vec 0.0 (scale* scale 0.7)))))
 (define top-of-head (attach-joint-rel! jts 0.0 -1.0 orig-top-of-head))
