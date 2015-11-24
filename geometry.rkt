@@ -73,10 +73,9 @@
          (rot-align (vrotate-origin-rad rel-align rotation-to))
          (x-for-the-y (sqrt-opt (- (sq radius) (sq (vec-y rot-align))))))
     (if x-for-the-y
-        (let* ((scale-factor (/ x-for-the-y (vec-x rot-align)))
-               (inv-scale-factor (/ 1 scale-factor))
-               (scalerot-align (x*c rot-align scale-factor))
-               (translation (- (/ tx radius))) ; (/ tx radius) is the translation of length tx around a circle of length radius, in radians!
+        (let* ((inv-scale-factor (/ (vec-x rot-align) x-for-the-y))
+               (scalerot-align (vec x-for-the-y (vec-y rot-align)))
+               (translation (/ tx radius)) ; (/ tx radius) is the translation of length tx around a circle of length radius, in radians!
                (scalerot-tx (vrotate-origin-rad scalerot-align translation))
                (rel-tx (vrotate-origin-rad (x*c scalerot-tx inv-scale-factor) (- rotation-to)))
                (final-tx (v+ rel-tx center)))
