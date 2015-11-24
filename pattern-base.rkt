@@ -6,10 +6,13 @@
 (require "entity.rkt")
 (require "functional-graphics.rkt")
 (require "saving.rkt")
+(require "setting.rkt")
+(require "setting-group.rkt")
 
 (provide PatternDef RendererSnippet
          pattern-def-new
          attach-renderer! attach-line! attach-poly! attach-circle!
+         ren-line ren-bone ren-circle ren-conditional ren-nothing
          pattern-lock pattern-load
          pattern-new pattern-constructor)
 
@@ -33,10 +36,28 @@
 (define (attach-renderer! pat render)
   (set-pattern-def-renderer-snippets! pat (cons render (pattern-def-renderer-snippets pat))))
 
+(: ren-nothing RendererSnippet)
+(define (ren-nothing sk)
+  r:nothing)
+
+(: ren-conditional (-> String RendererSnippet RendererSnippet RendererSnippet))
+(define ((ren-conditional option-name for-true for-false) sk)
+  (if (setting->value (setting-group-option-ref (jointset-settings sk) option-name))
+    (for-true sk)
+    (for-false sk)))
+
+(: ren-line (->* (JointRef JointRef) (Style) RendererSnippet))
+(define ((ren-line a b [style r:all]) sk)
+  (style (r:line (joint-ref sk a)
+                 (joint-ref sk b))))
+
+(: ren-bone (->* (BoneRef) (Style) RendererSnippet))
+(define (ren-bone br [style r:all])
+  (ren-line (car br) (cdr br) style))
+
 (: attach-line! (->* (PatternDef BoneRef) (Style) Void))
 (define (attach-line! pat br [style r:all])
-  (attach-renderer! pat (lambda (sk)
-                          (style (r:line (joint-ref sk (car br)) (joint-ref sk (cdr br)))))))
+  (attach-renderer! pat (ren-bone br style)))
 
 (: attach-poly! (->* (PatternDef (Listof JointRef)) (Style) Void))
 (define (attach-poly! pat joints [style r:all])
@@ -44,11 +65,14 @@
                           (style (r:poly (for/list ((joint joints))
                                            (joint-ref sk joint)))))))
 
+(: ren-circle (->* (JointRef Scale) (Style) RendererSnippet))
+(define ((ren-circle center size [style r:all]) sk)
+  (style (r:circle (joint-ref sk center)
+                   (scale* sk size))))
+
 (: attach-circle! (->* (PatternDef JointRef Scale) (Style) Void))
 (define (attach-circle! pat center size [style r:all])
-  (attach-renderer! pat (lambda (sk)
-                          (style (r:circle (joint-ref sk center)
-                                           (scale* sk size))))))
+  (attach-renderer! pat (ren-circle center size style)))
 
 (define-predicate valid-enc-skel? EncodedSkeleton)
 

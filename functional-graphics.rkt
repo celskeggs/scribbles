@@ -28,7 +28,7 @@
 
 (provide Renderer Style Color Context RendererFunc
          r:pen r:brush r:style r:wrap-style
-         r:all
+         r:all r:nothing
          r:circle r:line r:rect r:poly
          r:text r:blank
          r:render-to r:save-to r:contains
@@ -48,8 +48,8 @@
         (lambda ([x : Float] [y : Float])
           check)))
 
-(: nop-renderer Renderer)
-(define nop-renderer (cons void (const #f)))
+(: r:nothing Renderer)
+(define r:nothing (cons void (const #f)))
 
 (: r:wrap-style (-> Color Positive-Integer Color Style))
 (define ((r:wrap-style pen-color pen-width brush-color) . bodies)
@@ -121,7 +121,7 @@
 
 (: r:all (-> Renderer * Renderer))
 (define (r:all . bodies)
-  (cond ((empty? bodies) nop-renderer)
+  (cond ((empty? bodies) r:nothing)
         ((empty? (cdr bodies)) (car bodies))
         (else
          (genren (dc x y)
