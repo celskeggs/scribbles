@@ -24,7 +24,7 @@
 
 (: button->control (-> Vector2D Button Control))
 (define (button->control pos button)
-  (control (lambda (w h) (r:brush (btn-color button) 'solid (r:rect pos button-size button-size)))
+  (control (lambda (w h) (r:brush (btn-color button) (r:rect pos button-size button-size)))
            #f
            (lambda (x y w h) ((btn-press button) w h))
            void))
@@ -51,7 +51,7 @@
                    void)))
       (let ((box-size control-height))
         (let ((text-pos (v+ pos (vec (+ box-size 10) 0.0))))
-          (control (lambda (w h) (r:all (r:brush (if (setting->value setting) "green" "white") 'solid (r:rect pos box-size box-size))
+          (control (lambda (w h) (r:all (r:brush (if (setting->value setting) "green" "white") (r:rect pos box-size box-size))
                                         (r:text text-pos (setting-key setting))))
                    #f
                    (lambda (x y w h) (setting-set-value! setting (not (setting->value setting))))

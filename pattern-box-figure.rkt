@@ -11,11 +11,11 @@
 
 (define jts (jointset-def-new 100.0))
 (define skel (skeleton-def-new jts))
-(define body-style (r:wrap-style "black" 6 'solid (r:color 0 128 0) 'solid))
-(define eye-style (r:wrap-style "black" 1 'solid "black" 'solid))
-(define nose-style (r:wrap-style "gray" 1 'solid "gray" 'solid))
-(define mouth-style (r:wrap-style "black" 2 'solid "white" 'solid))
-(define pat (pattern-def-new skel (r:wrap-style "black" 6 'solid "white" 'solid)))
+(define body-style (r:wrap-style "black" 6 (r:color 0 128 0)))
+(define eye-style (r:wrap-style "black" 1 "black"))
+(define nose-style (r:wrap-style "gray" 1 "gray"))
+(define mouth-style (r:wrap-style "black" 2 "white"))
+(define pat (pattern-def-new skel (r:wrap-style "black" 6 "white")))
 
 (attach-setting! jts (setting-option-proto "left-up" #f))
 (attach-setting! jts (setting-option-proto "right-up" #f))

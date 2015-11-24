@@ -1,25 +1,49 @@
 #lang typed/racket
-(require typed/racket/draw)
-
 (require "vector.rkt")
+(require/typed "wrap-draw.rkt"
+               [#:opaque ColorInst wd:color?]
+               [#:opaque PenInst wd:pen?]
+               [#:opaque BrushInst wd:brush?]
+               [#:opaque Context wd:context?]
+               [wd:def-color (-> Byte Byte Byte ColorInst)]
+               [wd:find-color (-> Color ColorInst)]
+               [wd:find-pen (-> Color Positive-Integer PenInst)]
+               [wd:find-brush (-> Color BrushInst)]
+               [wd:render-to-file (-> (-> Context Void) Positive-Integer Positive-Integer String Void)]
+               [wd:with-pen (-> Context PenInst (-> Void) Void)]
+               [wd:with-brush (-> Context BrushInst (-> Void) Void)]
+               [wd:line (-> Context Float Float Float Float Void)]
+               [wd:ellipse (-> Context Float Float Float Float Void)]
+               [wd:rectangle (-> Context Float Float Float Float Void)]
+               [wd:polygon (-> Context (Listof (Pairof Float Float)) Void)]
+               [wd:text (-> Context String Float Float Void)]
+               [wd:window-and-canvas (All (A) (-> String Positive-Integer Positive-Integer
+                                                  (-> (-> Void) A)
+                                                  (-> A Nonnegative-Integer Nonnegative-Integer Positive-Integer Positive-Integer Void)
+                                                  (-> A Nonnegative-Integer Nonnegative-Integer Positive-Integer Positive-Integer Void)
+                                                  (-> A Nonnegative-Integer Nonnegative-Integer Positive-Integer Positive-Integer Void)
+                                                  (-> A Nonnegative-Integer Nonnegative-Integer Positive-Integer Positive-Integer Void)
+                                                  (-> A Context Positive-Integer Positive-Integer Void)
+                                                  Void))])
 
-(provide Renderer Style Color RendererFunc
+(provide Renderer Style Color Context RendererFunc
          r:pen r:brush r:style r:wrap-style
          r:all
          r:circle r:line r:rect r:poly
          r:text r:blank
          r:render-to r:save-to r:contains
-         [rename-out (make-color r:color)]
-         rf:compose)
+         [rename-out (wd:def-color r:color)]
+         rf:compose
+         wd:window-and-canvas)
 
 (define-type RendererFunc (-> Nonnegative-Integer Nonnegative-Integer Renderer))
 
-(define-type Color (U String (Instance Color%)))
-(define-type Renderer (Pairof (-> (Instance DC<%>) Void) (-> Float Float Boolean)))
+(define-type Color (U String ColorInst))
+(define-type Renderer (Pairof (-> Context Void) (-> Float Float Boolean)))
 (define-type Style (-> Renderer * Renderer))
 
 (define-syntax-rule (genren (dc x y) render check)
-  (cons (lambda ([dc : (Instance DC<%>)])
+  (cons (lambda ([dc : Context])
           render)
         (lambda ([x : Float] [y : Float])
           check)))
@@ -27,80 +51,60 @@
 (: nop-renderer Renderer)
 (define nop-renderer (cons void (const #f)))
 
-(: get-color (-> Color (Instance Color%)))
-(define (get-color name)
-  (if (string? name)
-      (let ((out (send the-color-database find-color name)))
-        (if out
-            out
-            (error "No such color:" name)))
-      name))
+(: r:wrap-style (-> Color Positive-Integer Color Style))
+(define ((r:wrap-style pen-color pen-width brush-color) . bodies)
+  (r:style pen-color pen-width brush-color (apply r:all bodies)))
 
-(: r:wrap-style (-> Color Positive-Integer Pen-Style Color Brush-Style Style))
-(define ((r:wrap-style pen-color pen-width pen-style brush-color brush-style) . bodies)
-  (r:style pen-color pen-width pen-style brush-color brush-style
-           (apply r:all bodies)))
+(: r:pen (-> Color Positive-Integer Renderer * Renderer))
+(define (r:pen color width . bodies)
+  (define allocated-pen (wd:find-pen color width))
+  (genren (dc x y)
+          (wd:with-pen dc allocated-pen
+                       (thunk
+                        (for ((body bodies))
+                          ((car body) dc))))
+          (for/or : Boolean ((body : Renderer bodies))
+            ((cdr body) x y))))
 
-(: r:pen (-> Color Positive-Integer Pen-Style Renderer * Renderer))
-(define (r:pen color width style . bodies)
-  (let ((allocated-pen (send the-pen-list find-or-create-pen (get-color color) width style)))
-        ;(body (apply r:all bodies)))
-    (genren (dc x y)
-            (let ((orig-pen (send dc get-pen)))
-              (send dc set-pen allocated-pen)
-              ;((car body) dc)
-              (for ((body bodies))
-                ((car body) dc))
-              (send dc set-pen orig-pen))
-            (for/or : Boolean ((body : Renderer bodies))
-              ((cdr body) x y)))))
+(: r:brush (-> Color Renderer * Renderer))
+(define (r:brush color . bodies)
+  (define allocated-brush (wd:find-brush color))
+  (genren (dc x y)
+          (wd:with-brush dc allocated-brush
+                         (thunk
+                          (for ((body bodies))
+                            ((car body) dc))))
+          (for/or : Boolean ((body : Renderer bodies))
+            ((cdr body) x y))))
 
-(: r:brush (-> Color Brush-Style Renderer * Renderer))
-(define (r:brush color style . bodies)
-  (let ((allocated-brush (send the-brush-list find-or-create-brush (get-color color) style)))
-        ;(body (apply r:all bodies)))
-    (if (not allocated-brush)
-        (error "Could not allocate brush!")
-        (genren (dc x y)
-                (let ((orig-brush (send dc get-brush)))
-                  (send dc set-brush allocated-brush)
-                  (for ((body bodies))
-                    ((car body) dc))
-                  ;((car body) dc)
-                  (send dc set-brush orig-brush))
-                (for/or : Boolean ((body : Renderer bodies))
-                  ((cdr body) x y))
-                  ;((cdr body) x y)
-                ))))
-
-(: r:style (-> Color Positive-Integer Pen-Style Color Brush-Style Renderer * Renderer))
-(define (r:style pen-color pen-width pen-style brush-color brush-style . bodies)
-  (r:pen pen-color pen-width pen-style
-         (r:brush brush-color brush-style
+(: r:style (-> Color Positive-Integer Color Renderer * Renderer))
+(define (r:style pen-color pen-width brush-color . bodies)
+  (r:pen pen-color pen-width
+         (r:brush brush-color
                   (apply r:all bodies))))
 
 (: r:line (-> Vector2D Vector2D Renderer))
 (define (r:line v1 v2)
   (genren (dc x y)
-          (send dc draw-line (vec-x v1) (vec-y v1) (vec-x v2) (vec-y v2))
+          (wd:line dc (vec-x v1) (vec-y v1) (vec-x v2) (vec-y v2))
           #f)) ; TODO: allow line collision detection?
 
 (: r:circle (-> Vector2D Positive-Float Renderer))
 (define (r:circle center rad)
   (genren (dc x y)
-          (send dc draw-ellipse (- (vec-x center) rad) (- (vec-y center) rad) (* rad 2) (* rad 2))
+          (wd:ellipse dc (- (vec-x center) rad) (- (vec-y center) rad) (* rad 2) (* rad 2))
           (vin-circle? (vec x y) center rad)))
 
 (: r:rect (-> Vector2D Positive-Float Positive-Float Renderer))
 (define (r:rect pos width height)
   (genren (dc x y)
-          (send dc draw-rectangle (vec-x pos) (vec-y pos) width height)
+          (wd:rectangle dc (vec-x pos) (vec-y pos) width height)
           (vin-rectangle? (vec x y) pos (vec width height))))
 
 (: r:poly (-> (Listof Vector2D) Renderer))
 (define (r:poly points)
   (genren (dc x y)
-          (send dc draw-polygon (map vec->pair points))
+          (wd:polygon dc (map vec->pair points))
           #f)) ; TODO: allow polygon collision detection?
 
 (: r:blank (-> Vector2D Positive-Float Positive-Float Renderer))
@@ -112,7 +116,7 @@
 (: r:text (-> Vector2D String Renderer))
 (define (r:text pos text)
   (genren (dc x y)
-          (send dc draw-text text (vec-x pos) (vec-y pos) #t)
+          (wd:text dc text (vec-x pos) (vec-y pos))
           #f)) ; TODO: allow text collision detection?
 
 (: r:all (-> Renderer * Renderer))
@@ -130,33 +134,20 @@
 (define (r:contains rf x y)
   ((cdr rf) x y))
 
-(: r:render-to (-> Renderer (Instance DC<%>) Void))
-(define (r:render-to rf dc)
-  (let ((orig-brush (send dc get-brush))
-        (orig-pen (send dc get-pen))
-        (orig-smoothing (send dc get-smoothing))
-        (orig-transform (send dc get-transformation)))
-    (send dc set-brush "green" 'solid)
-    (send dc set-pen "black" 1 'solid)
-    (send dc set-rotation 0)
-    (send dc set-scale 1 1)
-    (send dc set-smoothing 'aligned)
-    ((car rf) dc)
-    (send dc set-brush orig-brush)
-    (send dc set-pen orig-pen)
-    (send dc set-smoothing orig-smoothing)
-    (send dc set-transformation orig-transform)))
+(define default-pen (wd:find-pen "black" 1))
+(define default-brush (wd:find-brush "green"))
 
-(: r:save-to (->* (Renderer Positive-Integer Positive-Integer String) ((U 'png 'jpeg 'xbm 'xpm 'bmp)) Void))
-(define (r:save-to rf w h file [kind 'png])
-  (let* ((bmp (make-bitmap w h))
-         (dc (send bmp make-dc)))
-    (send dc set-brush "white" 'solid)
-    (send dc set-pen "white" 1 'solid)
-    (send dc draw-rectangle 0 0 w h)
-    (r:render-to rf dc)
-    (send bmp save-file file kind)
-    (void)))
+(: r:render-to (-> Renderer Context Void))
+(define (r:render-to rf dc)
+  (wd:with-pen dc default-pen
+               (thunk (wd:with-brush dc default-brush
+                                     (thunk ((car rf) dc))))))
+
+(: r:save-to (-> Renderer Positive-Integer Positive-Integer String Void))
+(define (r:save-to rf w h file)
+  (wd:render-to-file
+   (lambda (context) (r:render-to rf context))
+   w h file))
 
 (: rf:compose (-> (Listof RendererFunc) RendererFunc))
 (define ((rf:compose funcs) w h)

@@ -9,7 +9,7 @@
 
 (define jts (jointset-def-new 100.0))
 (define skel (skeleton-def-new jts))
-(define pat (pattern-def-new skel (r:wrap-style "black" 6 'solid "white" 'solid)))
+(define pat (pattern-def-new skel (r:wrap-style "black" 6 "white")))
 
 (define head (attach-joint! jts 0.0 -1.0))
 (define collar (attach-joint! jts 0.0 0.0))

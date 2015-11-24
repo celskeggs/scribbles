@@ -7,9 +7,9 @@
 
 (provide ButtonFunc RendererFunc Control gui-handles control)
 
-(define controls-style (r:wrap-style "black" 1 'solid "blue" 'solid))
-(define hover-style (r:wrap-style "black" 1 'solid (r:color 0 192 192) 'solid))
-(define drag-style (r:wrap-style "black" 1 'solid "white" 'solid))
+(define controls-style (r:wrap-style "black" 1 "blue"))
+(define hover-style (r:wrap-style "black" 1 (r:color 0 192 192)))
+(define drag-style (r:wrap-style "black" 1 "white"))
 
 (define-type ButtonFunc (-> Nonnegative-Integer Nonnegative-Integer Positive-Integer Positive-Integer Void))
 (struct control ([render : RendererFunc] [draggable : Boolean] [press : ButtonFunc] [release : ButtonFunc]))

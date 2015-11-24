@@ -1,6 +1,4 @@
 #lang typed/racket
-(require typed/racket/gui)
-(require typed/racket/draw)
 (require/typed "worker.rkt"
                [dropping-worker (All (Item) (-> (-> Item Void) (-> Item Void)))])
 
@@ -12,40 +10,25 @@
 
 (: gui-basic (-> RendererFunc MouseFunc MouseFunc MouseFunc MouseFunc Positive-Integer Positive-Integer String Void))
 (define (gui-basic provide-renderer press drag move release width height title)
-  (define frame (new frame% [label title] [width width] [height height]))
-  (define my-canvas%
-    (class canvas%
-      (inherit get-dc get-width get-height)
-
-      (: renderer (U #f Renderer))
-      (define renderer #f)
-
-      (: worker (-> (List Nonnegative-Integer Nonnegative-Integer) Void))
-      (define worker (dropping-worker
-                      (lambda ([wh : (List Nonnegative-Integer Nonnegative-Integer)])
-                        (set! renderer (provide-renderer (car wh) (cadr wh)))
-                        (send this refresh))))
-
-      (define/override (on-event event)
-        (let ((x (send event get-x))
-              (y (send event get-y))
-              (w (get-width))
-              (h (get-height)))
-          (unless (or (zero? w) (zero? h) (not (positive? x)) (not (positive? y)))
-            ((case (send event get-event-type)
-               ((left-down) press)
-               ((motion) (if (send event get-left-down) drag move))
-               ((left-up) release)
-               (else void)) x y w h)
-            (worker (list w h)))))
-      
-      (define/override (on-paint)
-        (define render renderer)
-        (if render
-            (r:render-to render (get-dc))
-            (worker (list (get-width) (get-height)))))
-      
-      (super-new)))
-  (new my-canvas% [parent frame])
-  (send frame center 'both)
-  (send frame show #t))
+  (: renderer (U #f Renderer))
+  (define renderer #f)
+  (define-type RenderWorker (-> (List Nonnegative-Integer Nonnegative-Integer) Void))
+  (: wrap-event (-> (-> Nonnegative-Integer Nonnegative-Integer Positive-Integer Positive-Integer Void) (-> RenderWorker Nonnegative-Integer Nonnegative-Integer Positive-Integer Positive-Integer Void)))
+  (define ((wrap-event f) worker x y w h)
+    (f x y w h)
+    (worker (list w h)))
+  ((inst wd:window-and-canvas RenderWorker) title width height
+                        (lambda ([refresh : (-> Void)]) : RenderWorker
+                          (dropping-worker
+                           (lambda ([wh : (List Nonnegative-Integer Nonnegative-Integer)])
+                             (set! renderer (provide-renderer (car wh) (cadr wh)))
+                             (refresh))))
+                        (wrap-event press)
+                        (wrap-event release)
+                        (wrap-event drag)
+                        (wrap-event move)
+                        (lambda ([worker : RenderWorker] [context : Context] [w : Positive-Integer] [h : Positive-Integer])
+                          (define render renderer)
+                          (if render
+                              (r:render-to render context)
+                              (worker (list w h))))))
