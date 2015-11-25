@@ -1,10 +1,12 @@
 #lang typed/racket
 (require "vector.rkt")
+(require "bezier-fit.rkt")
 (require/typed "wrap-draw.rkt"
                [#:opaque ColorInst wd:color?]
                [#:opaque PenInst wd:pen?]
                [#:opaque BrushInst wd:brush?]
                [#:opaque Context wd:context?]
+               [wd:transparent-brush BrushInst]
                [wd:def-color (-> Byte Byte Byte ColorInst)]
                [wd:find-color (-> Color ColorInst)]
                [wd:find-pen (-> Color Positive-Integer PenInst)]
@@ -16,6 +18,8 @@
                [wd:ellipse (-> Context Float Float Float Float Void)]
                [wd:rectangle (-> Context Float Float Float Float Void)]
                [wd:polygon (-> Context (Listof (Pairof Float Float)) Void)]
+               [wd:spline (-> Context Float Float Float Float Float Float Void)]
+               [wd:bezier (-> Context Float Float Float Float Float Float Float Float Void)]
                [wd:text (-> Context String Float Float Void)]
                [wd:window-and-canvas (All (A) (-> String Positive-Integer Positive-Integer
                                                   (-> (-> Void) A)
@@ -29,7 +33,7 @@
 (provide Renderer Style Color Context RendererFunc
          r:pen r:brush r:style r:wrap-style
          r:all r:nothing
-         r:circle r:line r:rect r:poly
+         r:circle r:line r:rect r:poly r:spline r:bezier r:bspline
          r:text r:blank
          r:render-to r:save-to r:contains
          [rename-out (wd:def-color r:color)]
@@ -51,7 +55,7 @@
 (: r:nothing Renderer)
 (define r:nothing (cons void (const #f)))
 
-(: r:wrap-style (-> Color Positive-Integer Color Style))
+(: r:wrap-style (-> Color Positive-Integer (Option Color) Style))
 (define ((r:wrap-style pen-color pen-width brush-color) . bodies)
   (r:style pen-color pen-width brush-color (apply r:all bodies)))
 
@@ -66,9 +70,9 @@
           (for/or : Boolean ((body : Renderer bodies))
             ((cdr body) x y))))
 
-(: r:brush (-> Color Renderer * Renderer))
+(: r:brush (-> (Option Color) Renderer * Renderer))
 (define (r:brush color . bodies)
-  (define allocated-brush (wd:find-brush color))
+  (define allocated-brush (if color (wd:find-brush color) wd:transparent-brush))
   (genren (dc x y)
           (wd:with-brush dc allocated-brush
                          (thunk
@@ -77,7 +81,7 @@
           (for/or : Boolean ((body : Renderer bodies))
             ((cdr body) x y))))
 
-(: r:style (-> Color Positive-Integer Color Renderer * Renderer))
+(: r:style (-> Color Positive-Integer (Option Color) Renderer * Renderer))
 (define (r:style pen-color pen-width brush-color . bodies)
   (r:pen pen-color pen-width
          (r:brush brush-color
@@ -106,6 +110,24 @@
   (genren (dc x y)
           (wd:polygon dc (map vec->pair points))
           #f)) ; TODO: allow polygon collision detection?
+
+(: r:spline (-> Vector2D Vector2D Vector2D Renderer))
+(define (r:spline v1 v2 v3)
+  (genren (dc x y)
+          (wd:spline dc (vec-x v1) (vec-y v1) (vec-x v2) (vec-y v2) (vec-x v3) (vec-y v3))
+          #f)) ; TODO: allow spline collision detection?
+
+(: r:bezier (-> Vector2D Vector2D Vector2D Vector2D Renderer))
+(define (r:bezier v0 v1 v2 v3)
+  (genren (dc x y)
+          (wd:bezier dc (vec-x v0) (vec-y v0) (vec-x v1) (vec-y v1) (vec-x v2) (vec-y v2) (vec-x v3) (vec-y v3))
+          #f)) ; TODO: allow bezier collision detection?
+
+(: r:bspline (-> Vector2D Vector2D Vector2D Float Renderer))
+(define (r:bspline v0 v1 v2 t)
+  (let-values (((va0 va1 va2 va3 vb0 vb1 vb2 vb3) (fit-cubics v0 v1 v2 t)))
+    (r:all (r:bezier va0 va1 va2 va3)
+           (r:bezier vb0 vb1 vb2 vb3))))
 
 (: r:blank (-> Vector2D Positive-Float Positive-Float Renderer))
 (define (r:blank pos width height)

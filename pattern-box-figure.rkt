@@ -7,11 +7,15 @@
 (require "setting.rkt")
 (require "pattern-base.rkt")
 
+; TEMP
+(require "bezier-fit.rkt")
+
 (provide new-box-figure)
 
 (define jts (jointset-def-new 100.0))
 (define skel (skeleton-def-new jts))
 (define body-style (r:wrap-style "black" 6 (r:color 0 128 0)))
+(define limb-style (r:wrap-style "black" 6 #f))
 (define eye-style (r:wrap-style "black" 1 "black"))
 (define nose-style (r:wrap-style "gray" 1 "gray"))
 (define mouth-style (r:wrap-style "black" 2 "white"))
@@ -34,8 +38,17 @@
 
   (attach-limited-bone! skeleton endjoint root length)
 
-  (attach-line! body (cons root midjoint) style)
-  (attach-line! body (cons midjoint endjoint) style)
+  ;(attach-line! body (cons root midjoint) style)
+  ;(attach-line! body (cons midjoint endjoint) style)
+  ;(attach-spline! body root midjoint endjoint style)
+  (attach-bspline! body root midjoint endjoint 0.5 style)
+  ;(attach-circle! body midjoint 0.02 nose-style)
+  #|(attach-circle! body (dynamic-joint scale () () (root midjoint endjoint)
+                                      (let-values (((a b) (calc-control-points root midjoint endjoint 0.5)))
+                                        a)) 0.02 nose-style)
+  (attach-circle! body (dynamic-joint scale () () (root midjoint endjoint)
+                                      (let-values (((a b) (calc-control-points root midjoint endjoint 0.5)))
+                                        b)) 0.02 nose-style)|#
 
   endjoint)
 
@@ -96,7 +109,7 @@
 (attach-line! pat (cons left-foot left-hip) body-style)
 (attach-line! pat (cons right-foot right-hip) body-style)
 
-(autolimb! pat left-shoulder 0.8 "left-up" 150.0 150.0 #t body-style)
-(autolimb! pat right-shoulder 0.8 "right-up" -150.0 150.0 #f body-style)
+(autolimb! pat left-shoulder 0.8 "left-up" 150.0 150.0 #t limb-style)
+(autolimb! pat right-shoulder 0.8 "right-up" -150.0 150.0 #f limb-style)
 
 (define new-box-figure (pattern-constructor (pattern-lock pat 'box-figure-basic)))

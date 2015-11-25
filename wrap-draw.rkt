@@ -4,15 +4,17 @@
 ; This file wraps classes with expensive types in Typed Racket into structures that are usable with less typechecking.
 
 (provide wd:color? wd:pen? wd:brush? wd:context?
-         wd:def-color wd:find-color wd:find-pen wd:find-brush
+         wd:def-color wd:find-color wd:find-pen wd:find-brush wd:transparent-brush
          wd:render-to-file wd:with-pen wd:with-brush
-         wd:line wd:ellipse wd:rectangle wd:polygon wd:text
+         wd:line wd:ellipse wd:rectangle wd:polygon wd:spline wd:bezier wd:text
          wd:window-and-canvas)
 
 (struct wd:color (v))
 (struct wd:pen (v))
 (struct wd:brush (v))
 (struct wd:context (v))
+
+(define wd:transparent-brush (wd:brush (send the-brush-list find-or-create-brush (make-color 0 0 0) 'transparent)))
 
 (define (wd:def-color r g b)
   (wd:color (make-color r g b)))
@@ -67,6 +69,15 @@
 
 (define (wd:polygon context points)
   (send (wd:context-v context) draw-polygon points))
+
+(define (wd:spline context x1 y1 x2 y2 x3 y3)
+  (send (wd:context-v context) draw-spline x1 y1 x2 y2 x3 y3))
+
+(define (wd:bezier context x1 y1 x2 y2 x3 y3 x4 y4)
+  (let ((p (new dc-path%)))
+    (send p move-to x1 y1)
+    (send p curve-to x2 y2 x3 y3 x4 y4)
+    (send (wd:context-v context) draw-path p)))
 
 (define (wd:text context text x y)
   (send (wd:context-v context) draw-text text x y #t))

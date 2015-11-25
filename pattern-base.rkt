@@ -11,7 +11,7 @@
 
 (provide PatternDef RendererSnippet
          pattern-def-new
-         attach-renderer! attach-line! attach-poly! attach-circle!
+         attach-renderer! attach-line! attach-poly! attach-circle! attach-spline! attach-bspline!
          ren-line ren-bone ren-circle ren-conditional ren-nothing
          pattern-lock pattern-load
          pattern-def-skeleton
@@ -74,6 +74,21 @@
 (: attach-circle! (->* (PatternDef JointRef Scale) (Style) Void))
 (define (attach-circle! pat center size [style r:all])
   (attach-renderer! pat (ren-circle center size style)))
+
+(: attach-spline! (->* (PatternDef JointRef JointRef JointRef) (Style) Void))
+(define (attach-spline! pat v1 v2 v3 [style r:all])
+  (attach-renderer! pat (lambda (sk)
+                          (style (r:spline (joint-ref sk v1)
+                                           (joint-ref sk v2)
+                                           (joint-ref sk v3))))))
+
+(: attach-bspline! (->* (PatternDef JointRef JointRef JointRef Float) (Style) Void))
+(define (attach-bspline! pat v1 v2 v3 t [style r:all])
+  (attach-renderer! pat (lambda (sk)
+                          (style (r:bspline (joint-ref sk v1)
+                                            (joint-ref sk v2)
+                                            (joint-ref sk v3)
+                                            t)))))
 
 (define-predicate valid-enc-skel? EncodedSkeleton)
 
