@@ -14,6 +14,7 @@
          attach-renderer! attach-line! attach-poly! attach-circle!
          ren-line ren-bone ren-circle ren-conditional ren-nothing
          pattern-lock pattern-load
+         pattern-def-skeleton
          pattern-new pattern-constructor)
 
 (define-type PatternDef pattern-def)

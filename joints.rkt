@@ -6,9 +6,10 @@
 
 (provide JointsetDef LockedJointsetDef Jointset JointRef RealJointRef DerivedJointRef BoneRef Scale EncodedJointset
          jointset-def-new attach-joint! attach-joint-rel! attach-setting!
-         joint-ref dynamic-joint
+         joint-ref dynamic-joint dynamic-joint-by-name
          jointset-new jointset-handles jointset-handle-ref jointset-scale jointset-settings
          jointset-load jointset-save jointset-lock
+         jointset-def-scale
          assert-valid-joint
          scale*)
 
@@ -34,6 +35,10 @@
 (define (jointset-scale js)
   ; TODO: don't cast
   (cast (setting->value (setting-group-slider-ref (jointset-settings js) "scale")) Scale))
+
+(: jointset-def-scale (-> JointsetDef Scale))
+(define (jointset-def-scale jsd)
+  (cast (setting-prototype->value (setting-prototype-group-slider-ref (jointset-def-default-settings jsd) "scale")) Scale))
 
 (: jointset-option-ref (-> Jointset String Boolean))
 (define (jointset-option-ref js name)
@@ -117,6 +122,14 @@
     (let ((scale (jointset-scale skel))
           (option (jointset-option-ref skel (symbol->string 'option))) ...
           (slider (jointset-slider-ref skel (symbol->string 'slider))) ...
+          (base (joint-ref skel (ann base JointRef))) ...)
+      (ann proc Vector2D))))
+
+(define-syntax-rule (dynamic-joint-by-name scale (option ...) (slider ...) (base ...) proc)
+  (lambda ([skel : Jointset])
+    (let ((scale (jointset-scale skel))
+          (option (jointset-option-ref skel option)) ...
+          (slider (jointset-slider-ref skel slider)) ...
           (base (joint-ref skel (ann base JointRef))) ...)
       (ann proc Vector2D))))
 

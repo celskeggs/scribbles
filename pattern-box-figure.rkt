@@ -18,8 +18,26 @@
 (define pat (pattern-def-new skel (r:wrap-style "black" 6 "white")))
 
 (attach-setting! jts (setting-option-proto "line-face" #t))
-(attach-setting! jts (setting-option-proto "left-up" #f))
-(attach-setting! jts (setting-option-proto "right-up" #f))
+
+(: autolimb! (->* (PatternDef JointRef Positive-Float String Float Float) (Boolean Style) JointRef))
+(define (autolimb! body root length direction-option default-x default-y [flip-direction #f] [style r:all])
+  (define skeleton (pattern-def-skeleton body))
+  (define joints (skeleton-def-jdef skeleton))
+
+  (define half-length (/ length 2.0))
+
+  (attach-setting! joints (setting-option-proto direction-option #f))
+
+  (define endjoint (attach-joint-rel! joints default-x default-y root))
+  (define midjoint (dynamic-joint-by-name scale (direction-option) () (root endjoint)
+                                          (hypot-known-legs root endjoint (* scale (if (xor direction-option flip-direction) (- half-length) half-length)))))
+
+  (attach-limited-bone! skeleton endjoint root length)
+
+  (attach-line! body (cons root midjoint) style)
+  (attach-line! body (cons midjoint endjoint) style)
+
+  endjoint)
 
 (define neck (attach-joint! jts 0.0 -50.0))
 (define head (attach-joint-rel! jts 0.0 -100.0 neck))
@@ -37,12 +55,6 @@
 (define right-hip (dynamic-joint scale () () (neck pelvis)
                                  (v+ pelvis (vscale (vrotate-origin-deg (v- neck pelvis) -90.0)
                                                    (* scale 0.5)))))
-(define left-hand (attach-joint-rel! jts 150.0 150.0 neck))
-(define left-elbow (dynamic-joint scale (left-up) () (left-shoulder left-hand)
-                                  (hypot-known-legs left-shoulder left-hand (* scale (if left-up -0.4 0.4)))))
-(define right-hand (attach-joint-rel! jts -150.0 150.0 neck))
-(define right-elbow (dynamic-joint scale (right-up) () (right-shoulder right-hand)
-                                   (hypot-known-legs right-shoulder right-hand (* scale (if right-up 0.4 -0.4)))))
 (define left-foot (attach-joint-rel! jts 50.0 300.0 neck))
 (define right-foot (attach-joint-rel! jts -50.0 300.0 neck))
 
@@ -54,8 +66,6 @@
                                    (vrotate-deg top-of-head head +90.0)))
 (define left-of-head (dynamic-joint scale () () (head top-of-head)
                                    (vrotate-deg top-of-head head -90.0)))
-#|(define nose (dynamic-joint scale () () (face head top-of-head)
-                            (translate-along-sphere head top-of-head face (scale* scale 0.2))))|#
 (define mouth (dynamic-joint scale () () (face head top-of-head)
                              (translate-along-sphere head top-of-head face (scale* scale 0.4))))
 (define left-mouth (dynamic-joint scale () () (mouth head left-of-head)
@@ -69,8 +79,6 @@
 
 (void (attach-fixed-bone! skel head neck 0.5)
       (attach-fixed-bone! skel top-of-head head 0.7)
-      (attach-limited-bone! skel left-hand left-shoulder 0.8)
-      (attach-limited-bone! skel right-hand right-shoulder 0.8)
       (attach-limited-bone! skel face head 0.6)
       (attach-fixed-bone! skel left-foot left-hip 0.8)
       (attach-fixed-bone! skel right-foot right-hip 0.8))
@@ -80,7 +88,6 @@
 (attach-circle! pat head 0.7)
 (attach-circle! pat left-eye 0.07 eye-style)
 (attach-circle! pat right-eye 0.07 eye-style)
-#|(attach-circle! pat nose 0.03 nose-style)|#
 
 (attach-renderer! pat (ren-conditional "line-face"
                                        (ren-line left-mouth right-mouth)
@@ -88,9 +95,8 @@
 
 (attach-line! pat (cons left-foot left-hip) body-style)
 (attach-line! pat (cons right-foot right-hip) body-style)
-(attach-line! pat (cons left-hand left-elbow) body-style)
-(attach-line! pat (cons left-elbow left-shoulder) body-style)
-(attach-line! pat (cons right-hand right-elbow) body-style)
-(attach-line! pat (cons right-elbow right-shoulder) body-style)
+
+(autolimb! pat left-shoulder 0.8 "left-up" 150.0 150.0 #t body-style)
+(autolimb! pat right-shoulder 0.8 "right-up" -150.0 150.0 #f body-style)
 
 (define new-box-figure (pattern-constructor (pattern-lock pat 'box-figure-basic)))

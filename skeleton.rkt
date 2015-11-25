@@ -9,7 +9,7 @@
          skeleton-def-new
          attach-constraint! attach-simple-constraint! attach-simple-bone! attach-fixed-bone! attach-limited-bone!
          skeleton-new update-skeleton skeleton-handles skeleton-settings
-         skeleton-js
+         skeleton-js skeleton-def-jdef
          skeleton-load skeleton-save skeleton-lock)
 
 (define-type LockedSkeletonDef locked-skeleton-def)
