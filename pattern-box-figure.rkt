@@ -38,17 +38,7 @@
 
   (attach-limited-bone! skeleton endjoint root length)
 
-  ;(attach-line! body (cons root midjoint) style)
-  ;(attach-line! body (cons midjoint endjoint) style)
-  ;(attach-spline! body root midjoint endjoint style)
   (attach-bspline! body root midjoint endjoint 0.5 style)
-  ;(attach-circle! body midjoint 0.02 nose-style)
-  #|(attach-circle! body (dynamic-joint scale () () (root midjoint endjoint)
-                                      (let-values (((a b) (calc-control-points root midjoint endjoint 0.5)))
-                                        a)) 0.02 nose-style)
-  (attach-circle! body (dynamic-joint scale () () (root midjoint endjoint)
-                                      (let-values (((a b) (calc-control-points root midjoint endjoint 0.5)))
-                                        b)) 0.02 nose-style)|#
 
   endjoint)
 
@@ -68,8 +58,6 @@
 (define right-hip (dynamic-joint scale () () (neck pelvis)
                                  (v+ pelvis (vscale (vrotate-origin-deg (v- neck pelvis) -90.0)
                                                    (* scale 0.5)))))
-(define left-foot (attach-joint-rel! jts 50.0 300.0 neck))
-(define right-foot (attach-joint-rel! jts -50.0 300.0 neck))
 
 (define face (attach-joint-rel! jts 0.0 -110.0 head))
 (define orig-top-of-head (dynamic-joint scale () () (head)
@@ -92,9 +80,7 @@
 
 (void (attach-fixed-bone! skel head neck 0.5)
       (attach-fixed-bone! skel top-of-head head 0.7)
-      (attach-limited-bone! skel face head 0.6)
-      (attach-fixed-bone! skel left-foot left-hip 0.8)
-      (attach-fixed-bone! skel right-foot right-hip 0.8))
+      (attach-limited-bone! skel face head 0.6))
 
 (attach-poly! pat (list left-shoulder left-hip right-hip right-shoulder) body-style)
 
@@ -106,10 +92,9 @@
                                        (ren-line left-mouth right-mouth)
                                        (ren-circle mouth 0.1 mouth-style)))
 
-(attach-line! pat (cons left-foot left-hip) body-style)
-(attach-line! pat (cons right-foot right-hip) body-style)
-
-(autolimb! pat left-shoulder 0.8 "left-up" 150.0 150.0 #t limb-style)
-(autolimb! pat right-shoulder 0.8 "right-up" -150.0 150.0 #f limb-style)
+(autolimb! pat left-shoulder 0.8 "left-arm-up" 150.0 150.0 #t limb-style)
+(autolimb! pat right-shoulder 0.8 "right-arm-up" -150.0 150.0 #f limb-style)
+(autolimb! pat left-hip 0.8 "left-leg-up" 50.0 300.0 #t limb-style)
+(autolimb! pat right-hip 0.8 "right-leg-up" -50.0 300.0 #f limb-style)
 
 (define new-box-figure (pattern-constructor (pattern-lock pat 'box-figure-basic)))
