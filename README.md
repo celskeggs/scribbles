@@ -20,7 +20,7 @@ If you want, you can also read [the development blog](http://www.colbyskeggs.com
 
 To try out this project:
 
- * Clone this git repository.
+ * Clone [this git repository](https://github.com/col6y/scribbles.git).
  * Install the [Racket](http://racket-lang.org/) programming language.
  * Run the main file from the command line:
 
