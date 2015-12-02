@@ -75,7 +75,7 @@
 (define (vin-rectangle? needle pos size)
   (vin-origin-rectangle? (v- needle pos) size))
 
-(: vscale (-> Vector2D Nonnegative-Float Vector2D))
+(: vscale (-> Vector2D Float Vector2D))
 (define (vscale v len)
   (v*c v (/ len (vlen v))))
 
