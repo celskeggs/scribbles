@@ -55,9 +55,9 @@
                                        (ren-line left-mouth right-mouth)
                                        (ren-circle mouth 0.1 mouth-style)))
 
-(autolimb! pat left-shoulder 0.8 "left-arm-up" 150.0 150.0 #t limb-style)
-(autolimb! pat right-shoulder 0.8 "right-arm-up" -150.0 150.0 #f limb-style)
-(autolimb! pat left-hip 0.8 "left-leg-up" 50.0 300.0 #t limb-style)
-(autolimb! pat right-hip 0.8 "right-leg-up" -50.0 300.0 #f limb-style)
+(autolimb! pat left-shoulder 0.8 "left-arm-up" 150.0 150.0 #t #f limb-style)
+(autolimb! pat right-shoulder 0.8 "right-arm-up" -150.0 150.0 #f #f limb-style)
+(autolimb! pat left-hip 0.8 "left-leg-up" 50.0 300.0 #t #t limb-style)
+(autolimb! pat right-hip 0.8 "right-leg-up" -50.0 300.0 #f #t limb-style)
 
 (define new-box-figure (pattern-constructor (pattern-lock pat 'box-figure-basic)))

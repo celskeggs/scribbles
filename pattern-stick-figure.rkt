@@ -39,6 +39,6 @@
 
 (attach-circle! pat head 0.5)
 
-(void (map (curry attach-line! pat) bones))
+(void (map (curry attach-line-bone! pat) bones))
 
 (define new-stick-figure (pattern-constructor (pattern-lock pat 'stick-figure-basic)))

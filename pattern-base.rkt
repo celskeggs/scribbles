@@ -11,7 +11,7 @@
 
 (provide PatternDef RendererSnippet
          pattern-def-new
-         attach-renderer! attach-line! attach-poly! attach-circle! attach-spline! attach-bspline!
+         attach-renderer! attach-line! attach-line-bone! attach-poly! attach-circle! attach-spline! attach-bspline!
          ren-line ren-bone ren-circle ren-conditional ren-nothing
          pattern-lock pattern-load
          pattern-def-skeleton
@@ -56,9 +56,13 @@
 (define (ren-bone br [style r:all])
   (ren-line (car br) (cdr br) style))
 
-(: attach-line! (->* (PatternDef BoneRef) (Style) Void))
-(define (attach-line! pat br [style r:all])
+(: attach-line-bone! (->* (PatternDef BoneRef) (Style) Void))
+(define (attach-line-bone! pat br [style r:all])
   (attach-renderer! pat (ren-bone br style)))
+
+(: attach-line! (->* (PatternDef JointRef JointRef) (Style) Void))
+(define (attach-line! pat a b [style r:all])
+  (attach-renderer! pat (ren-line a b style)))
 
 (: attach-poly! (->* (PatternDef (Listof JointRef)) (Style) Void))
 (define (attach-poly! pat joints [style r:all])
