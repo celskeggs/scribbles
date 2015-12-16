@@ -7,9 +7,9 @@
 
 (provide ButtonFunc RendererFunc Control gui-handles control)
 
-(define controls-style (r:wrap-style "black" 1 "blue"))
-(define hover-style (r:wrap-style "black" 1 (r:color 0 192 192)))
-(define drag-style (r:wrap-style "black" 1 "white"))
+(define controls-style (r:wrap-style "black" 1.0 "blue"))
+(define hover-style (r:wrap-style "black" 1.0 (r:color 0 192 192)))
+(define drag-style (r:wrap-style "black" 1.0 "white"))
 
 (define-type ButtonFunc (-> Nonnegative-Integer Nonnegative-Integer Positive-Integer Positive-Integer Void))
 (struct control ([render : RendererFunc] [draggable : Boolean] [press : ButtonFunc] [release : ButtonFunc]))
@@ -50,7 +50,7 @@
 
   (: render-handle (-> Nonnegative-Integer Vector2D Renderer))
   (define (render-handle handle-id handle-pos)
-    ((handle-style handle-id handle-pos) (r:circle handle-pos handle-radius)))
+    ((handle-style handle-id handle-pos) 1.0 (r:circle handle-pos handle-radius)))
   
   (: render RendererFunc)
   (define (render w h)
@@ -58,7 +58,7 @@
     (if (in-view-mode?)
         client-render
         (r:all client-render
-               (apply controls-style (apply-map2 (map control-render (controls)) w h))
+               (apply (curry controls-style 1.0) (apply-map2 (map control-render (controls)) w h))
                (let ((handles (map (inst mut-get Vector2D) (handles))))
                  (apply r:all (map render-handle (range 0 (length handles)) handles))))))
 

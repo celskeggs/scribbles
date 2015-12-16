@@ -12,21 +12,25 @@
 
 (define jts (jointset-def-new 100.0))
 (define skel (skeleton-def-new jts))
-(define body-style (r:wrap-style "black" 6 (r:color 0 128 0)))
-(define limb-style (r:wrap-style "black" 6 #f))
-(define eye-style (r:wrap-style "black" 1 "black"))
-(define nose-style (r:wrap-style "gray" 1 "gray"))
-(define mouth-style (r:wrap-style "black" 2 "white"))
-(define pat (pattern-def-new skel (r:wrap-style "black" 6 "white")))
+(define body-style (r:wrap-style "black" 0.06 (r:color 0 128 0)))
+(define limb-style (r:wrap-style "black" 0.06 #f))
+(define eye-style (r:wrap-style "black" 0.01 "black"))
+(define nose-style (r:wrap-style "gray" 0.01 "gray"))
+(define mouth-style (r:wrap-style "black" 0.02 "white"))
+(define pat (pattern-def-new skel (r:wrap-style "black" 0.06 "white")))
 
 (attach-setting! jts (setting-option-proto "line-face" #t))
 
 (define neck (attach-joint! jts 0.0 -50.0))
 (define head (attach-joint-rel! jts 0.0 -100.0 neck))
 (define pelvis (dynamic-joint scale () () (head neck)
-                              (v+ neck (vscale (v- neck head) scale))))
-(define-values (left-shoulder right-shoulder) (parallel-segment neck head 1.0))
-(define-values (left-hip right-hip) (parallel-segment pelvis neck 1.0))
+                              (v+ neck (vscale (v- neck head) (scale* scale 1.0)))))
+(define collar (dynamic-joint scale () () (head neck)
+                              (v+ neck (vscale (v- neck head) (scale* scale 0.1)))))
+(define-values (left-u-corner right-u-corner) (parallel-segment neck head 1.0))
+(define-values (left-shoulder right-shoulder) (parallel-segment collar head 1.0))
+(define-values (left-d-corner right-d-corner) (parallel-segment pelvis neck 1.0))
+(define-values (left-hip right-hip) (parallel-segment pelvis neck 0.8))
 
 (define-values (top-of-head right-of-head bottom-of-head left-of-head) (rotator-bearing! skel head 0.7))
 
@@ -45,7 +49,7 @@
 (void (attach-fixed-bone! skel head neck 0.5)
       (attach-limited-bone! skel face head 0.6))
 
-(attach-poly! pat (list left-shoulder left-hip right-hip right-shoulder) body-style)
+(attach-poly! pat (list left-u-corner left-d-corner right-d-corner right-u-corner) body-style)
 
 (attach-circle! pat head 0.7)
 (attach-circle! pat left-eye 0.07 eye-style)
@@ -57,7 +61,13 @@
 
 (autolimb! pat left-shoulder 0.8 "left-arm-up" 150.0 150.0 #t #f limb-style)
 (autolimb! pat right-shoulder 0.8 "right-arm-up" -150.0 150.0 #f #f limb-style)
-(autolimb! pat left-hip 0.8 "left-leg-up" 50.0 300.0 #t #t limb-style)
-(autolimb! pat right-hip 0.8 "right-leg-up" -50.0 300.0 #f #t limb-style)
+(define left-foot (autolimb! pat left-hip 0.8 "left-leg-up" 50.0 300.0 #t #f limb-style))
+(define right-foot (autolimb! pat right-hip 0.8 "right-leg-up" -50.0 300.0 #f #f limb-style))
+
+(define left-toes (attach-joint-rel! jts 1000.0 200.0 left-foot))
+(define right-toes (attach-joint-rel! jts 1000.0 200.0 right-foot))
+
+(attach-line-bone! pat (attach-fixed-bone! skel left-toes left-foot 0.4) limb-style)
+(attach-line-bone! pat (attach-fixed-bone! skel right-toes right-foot 0.4) limb-style)
 
 (define new-box-figure (pattern-constructor (pattern-lock pat 'box-figure-basic)))

@@ -9,7 +9,7 @@
                [wd:transparent-brush BrushInst]
                [wd:def-color (-> Byte Byte Byte ColorInst)]
                [wd:find-color (-> Color ColorInst)]
-               [wd:find-pen (-> Color Positive-Integer PenInst)]
+               [wd:find-pen (-> Color Positive-Float PenInst)]
                [wd:find-brush (-> Color BrushInst)]
                [wd:render-to-file (-> (-> Context Void) Positive-Integer Positive-Integer String Void)]
                [wd:with-pen (-> Context PenInst (-> Void) Void)]
@@ -32,7 +32,7 @@
 
 (provide Renderer Style Color Context RendererFunc
          r:pen r:brush r:style r:wrap-style
-         r:all r:nothing
+         r:all r:nothing no-style
          r:circle r:line r:rect r:poly r:spline r:bezier r:bspline
          r:text r:blank
          r:render-to r:save-to r:contains
@@ -44,7 +44,7 @@
 
 (define-type Color (U String ColorInst))
 (define-type Renderer (Pairof (-> Context Void) (-> Float Float Boolean)))
-(define-type Style (-> Renderer * Renderer))
+(define-type Style (-> Positive-Float Renderer * Renderer))
 
 (define-syntax-rule (genren (dc x y) render check)
   (cons (lambda ([dc : Context])
@@ -55,11 +55,19 @@
 (: r:nothing Renderer)
 (define r:nothing (cons void (const #f)))
 
-(: r:wrap-style (-> Color Positive-Integer (Option Color) Style))
-(define ((r:wrap-style pen-color pen-width brush-color) . bodies)
-  (r:style pen-color pen-width brush-color (apply r:all bodies)))
+(: p* (-> Positive-Float Positive-Float Positive-Float))
+(define (p* x y)
+  (let ((m (* x y)))
+    (if (= m 0)
+        (error "Number scale mismatch.")
+        m)))
 
-(: r:pen (-> Color Positive-Integer Renderer * Renderer))
+(: r:wrap-style (-> Color Positive-Float (Option Color) Style))
+(define ((r:wrap-style pen-color pen-width brush-color) line-scale . bodies)
+;  (r:style pen-color (p* line-scale pen-width) brush-color (apply r:all bodies)))
+  (r:style pen-color (p* (if (= line-scale 1.0) 1.0 100.0) pen-width) brush-color (apply r:all bodies)))
+
+(: r:pen (-> Color Positive-Float Renderer * Renderer))
 (define (r:pen color width . bodies)
   (define allocated-pen (wd:find-pen color width))
   (genren (dc x y)
@@ -81,7 +89,7 @@
           (for/or : Boolean ((body : Renderer bodies))
             ((cdr body) x y))))
 
-(: r:style (-> Color Positive-Integer (Option Color) Renderer * Renderer))
+(: r:style (-> Color Positive-Float (Option Color) Renderer * Renderer))
 (define (r:style pen-color pen-width brush-color . bodies)
   (r:pen pen-color pen-width
          (r:brush brush-color
@@ -152,11 +160,15 @@
                  (for/or : Boolean ((body : Renderer bodies))
                    ((cdr body) x y))))))
 
+(: no-style Style)
+(define (no-style size . bodies)
+  (apply r:all bodies))
+
 (: r:contains (-> Renderer Float Float Boolean))
 (define (r:contains rf x y)
   ((cdr rf) x y))
 
-(define default-pen (wd:find-pen "black" 1))
+(define default-pen (wd:find-pen "black" 1.0))
 (define default-brush (wd:find-brush "green"))
 
 (: r:render-to (-> Renderer Context Void))

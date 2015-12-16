@@ -10,7 +10,7 @@
 (provide autolimb! parallel-segment rotator-bearing!)
 
 (: autolimb! (->* (PatternDef JointRef Positive-Float String Float Float) (Boolean Boolean Style) JointRef))
-(define (autolimb! body root length direction-option default-x default-y [flip-direction #f] [use-lines #f] [style r:all])
+(define (autolimb! body root length direction-option default-x default-y [flip-direction #f] [use-lines #f] [style no-style])
   (define skeleton (pattern-def-skeleton body))
   (define joints (skeleton-def-jdef skeleton))
 
