@@ -64,8 +64,8 @@
 
 (: r:wrap-style (-> Color Positive-Float (Option Color) Style))
 (define ((r:wrap-style pen-color pen-width brush-color) line-scale . bodies)
-;  (r:style pen-color (p* line-scale pen-width) brush-color (apply r:all bodies)))
-  (r:style pen-color (p* (if (= line-scale 1.0) 1.0 100.0) pen-width) brush-color (apply r:all bodies)))
+  (r:style pen-color (p* line-scale pen-width) brush-color (apply r:all bodies)))
+;  (r:style pen-color (p* (if (= line-scale 1.0) 1.0 100.0) pen-width) brush-color (apply r:all bodies)))
 
 (: r:pen (-> Color Positive-Float Renderer * Renderer))
 (define (r:pen color width . bodies)
