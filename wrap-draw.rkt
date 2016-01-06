@@ -34,7 +34,6 @@
 (define (wd:render-to-file renderer w h file [kind 'png])
   (let* ((bmp (make-bitmap w h))
          (dc (send bmp make-dc)))
-    ;(send dc set-smoothing 'aligned)
     (send dc set-smoothing 'smoothed)
     (send dc set-brush "white" 'solid)
     (send dc set-pen "white" 1 'solid)
@@ -104,7 +103,6 @@
 
          (define/override (on-paint)
            (define dc (get-dc))
-           ;(send dc set-smoothing 'aligned)
            (send dc set-smoothing 'smoothed)
            (send dc set-brush "white" 'solid)
            (send dc set-pen "white" 1 'solid)
