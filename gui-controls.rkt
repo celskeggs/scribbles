@@ -16,15 +16,17 @@
 (define slider-width 150.0)
 
 (define-type ButtonPress (-> Positive-Integer Positive-Integer Void))
-(struct btn ([press : ButtonPress] [color : Color]))
+(struct btn ([press : ButtonPress] [color : Color] [name : String]))
 (define-type Button btn)
-(: button (-> ButtonPress Color Button))
-(define (button press color)
-  (btn press color))
+(: button (-> ButtonPress Color String Button))
+(define (button press color name)
+  (btn press color name))
 
 (: button->control (-> Vector2D Button Control))
 (define (button->control pos button)
-  (control (lambda (w h) (r:brush (btn-color button) (r:rect pos button-size button-size)))
+  (control (lambda (w h) (r:brush (btn-color button)
+                                  (r:rect pos (+ 1 (* 2 button-size)) button-size)
+                                  (r:text (v+ pos (vec (/ button-size 8) (* button-size 0.2))) (btn-name button))))
            #f
            (lambda (x y w h) ((btn-press button) w h))
            void))
@@ -77,7 +79,7 @@
   (define controls
     (mutlist-append (list view-mode-control)
                     (for/list : (Listof Control) (((i button) (list->hash buttons)))
-                      (button->control (vec (* (->fl i) button-size) 0.0) button))
+                      (button->control (vec (* (->fl i) (+ 1 (* 2 button-size))) 0.0) button))
                     (mutlist-enum-map (lambda ([i : Nonnegative-Integer] [x : Setting])
                                         (setting->control (vec 0.0 (+ 200 (* (->fl i) control-height))) x))
                                       settings)))

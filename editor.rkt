@@ -66,11 +66,11 @@
       (displayln "Nothing selected!")))
   
   (gui-controls (world->handles world) (world->settings world) renderer
-                (list (button save-rendering "orange")
-                      (button add-entity "green")
-                      (button remove-entity "red")
-                      (button save-world "cyan")
-                      (button load-world "black"))
+                (list (button save-rendering "orange" "export")
+                      (button add-entity "green" "add")
+                      (button remove-entity "red" "remove")
+                      (button save-world "cyan" "save")
+                      (button load-world "white" "load"))
                 width height title))
 
 (: editor-main (->* ((-> Positive-Integer Positive-Integer Entity)) (Positive-Integer Positive-Integer) Void))
