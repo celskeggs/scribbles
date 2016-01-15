@@ -59,7 +59,7 @@
                    (lambda (x y w h) (setting-set-value! setting (not (setting->value setting))))
                    void)))))
 
-(: gui-controls (-> (MutListOf (Mutable Vector2D)) (MutListOf Setting) RendererFunc (Listof Button) Positive-Integer Positive-Integer String Void))
+(: gui-controls (-> (MutListOf (Mutable (Pairof Boolean Vector2D))) (MutListOf Setting) RendererFunc (Listof Button) Positive-Integer Positive-Integer String Void))
 (define (gui-controls handles settings render buttons width height title)
 
   (: view-mode Boolean)

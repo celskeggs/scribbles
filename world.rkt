@@ -17,14 +17,16 @@
 (define (world->mutlist world)
   (lambda () (world-entities world)))
 
-(: world->handles (-> World (MutListOf (Mutable Vector2D))))
+(: world->handles (-> World (MutListOf (Mutable (Pairof Boolean Vector2D)))))
 (define (world->handles world)
   (mutlist-append* (mutlist-enum-map (lambda ([i : Nonnegative-Integer] [vecs : (MutListOf (Mutable Vector2D))])
                                        ; This allows us to know which entity was last modified - hence, last selected.
-                                       (mutlist-map (curry (inst mut-wrap-set Vector2D)
-                                                           (lambda ([vec : Vector2D])
-                                                             (set-world-selected! world i)
-                                                             vec))
+                                       (mutlist-map (lambda ([vcs : (Mutable Vector2D)])
+                                                      (mut-make (lambda ()
+                                                                  (cons (equal? i (world-selected world)) (mut-get vcs)))
+                                                                (lambda ([vp : (Pairof Boolean Vector2D)])
+                                                                  (set-world-selected! world i)
+                                                                  (mut-set! vcs (cdr vp)))))
                                                     vecs))
                                      (mutlist-map entity-handles (world->mutlist world)))))
 

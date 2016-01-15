@@ -7,7 +7,8 @@
 
 (provide ButtonFunc RendererFunc Control gui-handles control)
 
-(define controls-style (r:wrap-style "black" 1.0 "blue"))
+(define controls-style (r:wrap-style "black" 1.0 (r:color 0 0 255)))
+(define select-style (r:wrap-style "black" 1.0 (r:color 0 128 255)))
 (define hover-style (r:wrap-style "black" 1.0 (r:color 0 192 192)))
 (define drag-style (r:wrap-style "black" 1.0 "white"))
 
@@ -19,7 +20,8 @@
 
 (define handle-radius 6.0)
 
-(: gui-handles (-> RendererFunc (MutListOf (Mutable Vector2D)) (MutListOf Control) (-> Boolean) Positive-Integer Positive-Integer String Void))
+; Handles: pair of boolean (is selected?) and vector (center position)
+(: gui-handles (-> RendererFunc (MutListOf (Mutable (Pairof Boolean Vector2D))) (MutListOf Control) (-> Boolean) Positive-Integer Positive-Integer String Void))
 (define (gui-handles render-body handles controls in-view-mode? width height title)
 
   (: drag-status (U #f active-drag))
@@ -39,18 +41,20 @@
           #t)
         #f))
 
-  (: handle-style (-> Nonnegative-Integer Vector2D Style))
+  (: handle-style (-> Nonnegative-Integer (Pairof Boolean Vector2D) Style))
   (define (handle-style id pos)
     (let ((drag drag-status))
       (if (and drag (= id (active-drag-index drag)))
           drag-style
-          (if (hovering? pos)
+          (if (hovering? (cdr pos))
               hover-style
-              controls-style))))
+              (if (car pos)
+                  select-style
+                  controls-style)))))
 
-  (: render-handle (-> Nonnegative-Integer Vector2D Renderer))
+  (: render-handle (-> Nonnegative-Integer (Pairof Boolean Vector2D) Renderer))
   (define (render-handle handle-id handle-pos)
-    ((handle-style handle-id handle-pos) 1.0 (r:circle handle-pos handle-radius)))
+    ((handle-style handle-id handle-pos) 1.0 (r:circle (cdr handle-pos) handle-radius)))
   
   (: render RendererFunc)
   (define (render w h)
@@ -59,7 +63,7 @@
         client-render
         (r:all client-render
                (apply (curry controls-style 1.0) (apply-map2 (map control-render (controls)) w h))
-               (let ((handles (map (inst mut-get Vector2D) (handles))))
+               (let ((handles (map (inst mut-get (Pairof Boolean Vector2D)) (handles))))
                  (apply r:all (map render-handle (range 0 (length handles)) handles))))))
 
   (: try-control-click (-> Nonnegative-Integer Nonnegative-Integer Positive-Integer Positive-Integer Boolean Boolean))
@@ -75,7 +79,7 @@
   (: press MouseFunc)
   (define (press x y w h)
     (set! mouse-pos (vec (->fl x) (->fl y)))
-    (or (let ((handles (map (inst mut-get Vector2D) (handles))))
+    (or (let ((handles (map-cdrs (map (inst mut-get (Pairof Boolean Vector2D)) (handles)))))
           (ormap try-drag-handle (range 0 (length handles)) handles))
         (try-control-click x y w h #f))
     (void)) ; void because we don't care about any results
@@ -84,8 +88,9 @@
   (define (update-dragging)
     (let ((drag drag-status))
       (when drag
-        (mut-set! (list-ref (handles) (active-drag-index drag))
-                  (v+ (active-drag-rel drag) mouse-pos)))))
+        (let ((mut (list-ref (handles) (active-drag-index drag))))
+          (mut-set! mut
+                    (cons (car (mut-get mut)) (v+ (active-drag-rel drag) mouse-pos)))))))
 
   (: drag MouseFunc)
   (define (drag x y w h)
